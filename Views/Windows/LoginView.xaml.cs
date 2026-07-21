@@ -14,7 +14,7 @@ namespace NewLab.Views.Windows
             var vm = serviceProvider.GetRequiredService<LoginViewModel>();
             vm.OnSuccess = () =>
             {
-                var mainWindow = new MainWindow();
+                var mainWindow = new MainWindow(serviceProvider);
                 
                 // When MainWindow closes, show LoginView again
                 mainWindow.Closed += (s, e) =>

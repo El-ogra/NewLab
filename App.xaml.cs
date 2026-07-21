@@ -35,6 +35,7 @@ namespace NewLab
                     // 4. Register ViewModels
                     services.AddTransient<SetupViewModel>();
                     services.AddTransient<LoginViewModel>();
+                    services.AddTransient<MainDashboardViewModel>();
                 })
                 .Build();
         }

@@ -302,6 +302,93 @@ NewLab/
 
 ---
 
+### ✅ Phase 4: Main Dashboard Window (Navigation Shell)
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Build the main dashboard navigation shell with a top toolbar (11 category icons, RTL), a content area that switches between dashboard mode (function buttons grid) and function mode (placeholder with back button), and integrate it into the existing Login/Setup → MainWindow flow.
+
+#### Part 1: NavigationService DI Rewrite
+- ✅ Modified `Services/Interfaces/INavigationService.cs`
+  - Relaxed generic constraint from `where TViewModel : ViewModelBase` to `where TViewModel : class`
+  - Added `object? CurrentViewModel` property
+- ✅ Modified `Services/Implementations/NavigationService.cs`
+  - Added `IServiceProvider` constructor dependency
+  - Replaced `Activator.CreateInstance<TViewModel>()` with `_serviceProvider.GetRequiredService<TViewModel>()`
+  - Changed history stack from `Stack<ViewModelBase>` to `Stack<object>`
+
+#### Part 2: Toolbar Model
+- ✅ Created `Models/Domain/ToolbarItem.cs`
+  - Properties: `PackIconKind IconKind`, `string Label`, `string Category`, `List<FunctionDefinition> Functions`
+
+#### Part 3: Function Definition Model
+- ✅ Created `Models/Domain/FunctionDefinition.cs`
+  - Properties: `string Name`, `string IconName`, `Type? TargetViewType`
+
+#### Part 4: MainDashboardViewModel
+- ✅ Created `ViewModels/Pages/MainDashboardViewModel.cs`
+  - 11 toolbar categories with MaterialDesign icons and Arabic labels
+  - 4 Patients function buttons
+  - Commands: SelectCategoryCommand, OpenFunctionCommand, CloseFunctionCommand, ExitCommand
+  - State: IsToolbarVisible, IsDashboardMode, SelectedCategory, CurrentFunction
+
+#### Part 5: MainWindow.xaml Redesign
+- ✅ Replaced stub `Views/Windows/MainWindow.xaml`
+  - Top toolbar: Border + ItemsControl + WrapPanel, RTL
+  - 11 PackIcon buttons
+  - Content area: two StackPanels toggled by IsDashboardMode
+  - Dashboard mode: UniformGrid Columns="2" for function buttons
+  - Function mode: placeholder with Back button
+- ✅ Created `ViewModels/Pages/IconNameToKindConverter.cs`
+- ✅ Created `Converters/InverseBoolToVisibilityConverter.cs`
+- ✅ Modified `App.xaml` — added converter resource
+
+#### Part 6: MainWindow.xaml.cs DI Integration
+- ✅ Modified `Views/Windows/MainWindow.xaml.cs` — accepts IServiceProvider
+- ✅ Modified `Views/Windows/LoginView.xaml.cs` — passes serviceProvider
+- ✅ Modified `Views/Windows/SetupView.xaml.cs` — passes serviceProvider
+
+#### Part 7: DashboardContentControl
+- ✅ Created `Views/Controls/DashboardContentControl.xaml` + `.cs`
+
+#### Part 8: FunctionPlaceholderControl
+- ✅ Created `Views/Controls/FunctionPlaceholderControl.xaml` + `.cs`
+
+#### Part 9: DI Container Registration
+- ✅ Modified `App.xaml.cs` — added MainDashboardViewModel Transient
+
+#### Part 10: Window Flow Integration
+- ✅ Verified: Login → MainWindow → Exit → Login
+
+#### Updated Project Structure
+```
+NewLab/
+├── Converters/
+│   └── InverseBoolToVisibilityConverter.cs  # NEW
+├── Models/Domain/
+│   ├── ToolbarItem.cs          # NEW
+│   ├── FunctionDefinition.cs   # NEW
+│   ...
+├── ViewModels/Pages/
+│   ├── MainDashboardViewModel.cs  # NEW
+│   ├── IconNameToKindConverter.cs  # NEW
+│   ...
+├── Views/Controls/
+│   ├── DashboardContentControl.xaml/.cs      # NEW
+│   └── FunctionPlaceholderControl.xaml/.cs   # NEW
+├── Views/Windows/
+│   ├── MainWindow.xaml/.cs     # MODIFIED
+│   ├── LoginView.xaml/.cs      # MODIFIED
+│   └── SetupView.xaml.cs       # MODIFIED
+└── Services/
+    ├── Interfaces/INavigationService.cs  # MODIFIED
+    └── Implementations/NavigationService.cs  # MODIFIED
+```
+
+**Build Status**: 0 errors, 0 warnings
+
+---
+
 ## 🎯 Next Steps (Phase 3)
 **Status**: Planned  
 **Goal**: Build core UI screens for business operations
@@ -373,8 +460,8 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 
 ---
 
-**Last Updated**: 2026-07-21  
-**Document Version**: 1.1
+**Last Updated**: 2026-07-22  
+**Document Version**: 1.2
 
 ---
 
