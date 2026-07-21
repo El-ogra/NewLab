@@ -1,0 +1,40 @@
+<Window x:Class="NewLab.Views.Windows.SetupView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="NewLab - الإعداد الأولي" 
+        Height="700" Width="550"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Style="{StaticResource MaterialDesignWindow}">
+    
+    <Grid Background="{DynamicResource MaterialDesignPaper}">
+        <StackPanel Margin="20" VerticalAlignment="Top">
+            <TextBlock Text="إعداد النظام لأول مرة" FontSize="24" FontWeight="Bold" 
+                       HorizontalAlignment="Center" Margin="0,10,0,20" Foreground="{StaticResource PrimaryBrush}"/>
+            
+            <TextBlock Text="الاسم الكامل" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+            <TextBlock Text="اسم المستخدم" Margin="0,10,0,5"/>
+            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+            <TextBlock Text="كلمة المرور" Margin="0,10,0,5"/>
+            <PasswordBox x:Name="PwdBox" materialDesign:HintAssist.Hint="كلمة المرور" Style="{StaticResource MaterialDesignOutlinedPasswordBox}"/>
+
+            <TextBlock Text="تأكيد كلمة المرور" Margin="0,10,0,5"/>
+            <PasswordBox x:Name="ConfirmPwdBox" materialDesign:HintAssist.Hint="تأكيد كلمة المرور" Style="{StaticResource MaterialDesignOutlinedPasswordBox}"/>
+
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" Margin="0,10,0,0" TextWrapping="Wrap"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Button Content="إنشاء الحساب" Command="{Binding CreateAdminAccountCommand}" 
+                        Width="150" Margin="0,0,10,0" Style="{StaticResource MaterialDesignRaisedButton}" 
+                        Background="{StaticResource PrimaryBrush}"/>
+                <Button Content="إلغاء" Command="{Binding ExitApplicationCommand}" 
+                        Width="100" Style="{StaticResource MaterialDesignOutlinedButton}"/>
+            </StackPanel>
+        </StackPanel>
+        <ProgressBar IsIndeterminate="True" Height="4" VerticalAlignment="Top" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+    </Grid>
+</Window>
