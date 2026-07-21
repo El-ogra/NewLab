@@ -205,6 +205,9 @@ NewLab/
 - System designed to be deployed to multiple laboratories
 - Each lab will configure: name, address, contact info, currency, language
 
+### Environment Setup
+- Verified local SQL Server environment on 2026-07-22. Updated appsettings.json to point to the correct SQLEXPRESS instance instead of the default instance.
+
 ---
 
 ## 🔧 Technical Details
@@ -215,10 +218,12 @@ NewLab/
 - **Implicit Usings**: Enabled
 
 ### Database Connection
-- **Server**: . (local SQL Server instance)
+- **Server**: SQLEXPRESS (MSSQL16.SQLEXPRESS)
 - **Database**: NewLabDb
 - **Authentication**: Windows Authentication (Trusted_Connection=True)
 - **Trust Server Certificate**: True
+- **Service Status**: Running
+- **Connection String**: `Server=.\SQLEXPRESS;Database=NewLabDb;Trusted_Connection=True;TrustServerCertificate=True;`
 
 ---
 
