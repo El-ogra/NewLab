@@ -1,0 +1,31 @@
+﻿<Application x:Class="NewLab.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:NewLab"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Material Design Theme -->
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign2.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Primary Colors -->
+            <Color x:Key="PrimaryColor">#1976D2</Color>
+            <Color x:Key="PrimaryLightColor">#63A4FF</Color>
+            <Color x:Key="PrimaryDarkColor">#004BA0</Color>
+
+            <!-- Secondary Colors -->
+            <Color x:Key="SecondaryColor">#FF5722</Color>
+            <Color x:Key="SecondaryLightColor">#FF8A50</Color>
+            <Color x:Key="SecondaryDarkColor">#C41C00</Color>
+
+            <!-- Brushes -->
+            <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+            <SolidColorBrush x:Key="PrimaryLightBrush" Color="{StaticResource PrimaryLightColor}" />
+            <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}" />
+            <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
