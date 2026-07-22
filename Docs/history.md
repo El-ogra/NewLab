@@ -54,15 +54,28 @@
 NewLab/
 ├── Assets/                     # Images, icons, logos, fonts
 ├── Converters/                 # IValueConverter implementations
+│   └── InverseBoolToVisibilityConverter.cs
 ├── Data/                       # EF Core DbContext and design-time factories
-│   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole
+│   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole, Patient, Referral, SpecimenType, PatientVisit
 │   └── NewLabDbContextFactory.cs # Design-time factory for EF Core tooling
 ├── Helpers/                    # Extension methods, utility classes
 ├── Models/                     # Domain entities and DTOs
 │   ├── Domain/                 # Rich domain models
+│   │   ├── Enums/              # NEW (Phase 5)
+│   │   │   ├── Gender.cs
+│   │   │   ├── BillingSystem.cs
+│   │   │   ├── AgeUnit.cs
+│   │   │   ├── TestStatus.cs
+│   │   │   └── CodeType.cs
 │   │   ├── User.cs             # User entity (Id, Username, PasswordHash, FullName, etc.)
 │   │   ├── Role.cs             # Role entity (Id, Name, Description)
-│   │   └── UserRole.cs         # Many-to-many join entity (UserId, RoleId)
+│   │   ├── UserRole.cs         # Many-to-many join entity (UserId, RoleId)
+│   │   ├── Patient.cs          # NEW (Phase 5) — 8 Boolean medical fields
+│   │   ├── PatientVisit.cs     # NEW (Phase 5)
+│   │   ├── Referral.cs         # NEW (Phase 5)
+│   │   └── SpecimenType.cs     # NEW (Phase 5)
+│   ├── Validation/             # NEW (Phase 5)
+│   │   └── PatientValidator.cs
 │   └── DTOs/                   # Data transfer objects
 ├── Resources/                  # Shared XAML resources
 │   ├── Styles/                 # Control styles, themes
@@ -73,25 +86,39 @@ NewLab/
 │   │   ├── INavigationService.cs
 │   │   ├── IDialogService.cs
 │   │   ├── IApplicationStartupService.cs  # First-run detection, role seeding
-│   │   └── IAuthService.cs                # Login, password hashing, account creation
+│   │   ├── IAuthService.cs                # Login, password hashing, account creation
+│   │   ├── ICurrentUserService.cs         # NEW (Phase 5) — current user tracking
+│   │   ├── IPatientService.cs             # NEW (Phase 5)
+│   │   └── IReferralService.cs            # NEW (Phase 5)
 │   ├── Implementations/        # Concrete implementations
 │   │   ├── NavigationService.cs
 │   │   ├── DialogService.cs
 │   │   ├── ApplicationStartupService.cs   # Checks if Users table is empty
-│   │   └── AuthService.cs                 # BCrypt hashing, credential validation
+│   │   ├── AuthService.cs                 # BCrypt hashing, credential validation
+│   │   ├── CurrentUserService.cs          # NEW (Phase 5) — Singleton
+│   │   ├── PatientService.cs              # NEW (Phase 5)
+│   │   └── ReferralService.cs             # NEW (Phase 5)
 │   └── Factories/              # ViewModel factories
 ├── ViewModels/                 # MVVM ViewModels
 │   ├── Base/                   # ViewModelBase, shared base classes
 │   │   └── ViewModelBase.cs
 │   ├── Pages/                  # Page-level ViewModels
 │   │   ├── SetupViewModel.cs   # First-time admin account creation
-│   │   └── LoginViewModel.cs   # Login form logic
+│   │   ├── LoginViewModel.cs   # Login form logic
+│   │   ├── MainDashboardViewModel.cs  # Toolbar navigation shell
+│   │   ├── IconNameToKindConverter.cs # Icon name to PackIconKind converter
+│   │   ├── PatientEntryViewModel.cs   # NEW (Phase 5)
+│   │   └── LabTestPlaceholder.cs      # NEW (Phase 5) — temporary until F7
 │   ├── Dialogs/                # Dialog ViewModels
 │   └── Components/             # Reusable component ViewModels
 ├── Views/                      # WPF Views
-│   ├── Pages/                  # Main pages
+│   ├── Pages/                  # NEW (Phase 5)
+│   │   ├── PatientEntryView.xaml
+│   │   └── PatientEntryView.xaml.cs
 │   ├── Dialogs/                # Modal dialogs
 │   ├── Controls/               # Reusable UserControls
+│   │   ├── DashboardContentControl.xaml/.cs
+│   │   └── FunctionPlaceholderControl.xaml/.cs
 │   └── Windows/                # Shell windows
 │       ├── SetupView.xaml/.cs  # First-time setup wizard
 │       ├── LoginView.xaml/.cs  # Login screen (green/yellow theme)
@@ -99,8 +126,9 @@ NewLab/
 ├── Docs/                       # Project documentation
 │   └── history.md              # This file
 ├── Migrations/                 # EF Core migrations
-│   └── <timestamp>_InitialCreate.cs  # Initial database schema
-├── App.xaml                    # Application resources, MaterialDesign theme, ShutdownMode
+│   ├── 20260721171559_InitialCreate.cs
+│   └── 20260722032039_AddPatientsAndReferrals.cs  # NEW (Phase 5)
+├── App.xaml                    # Application resources, MaterialDesign theme, DataTemplates
 ├── App.xaml.cs                 # Application entry point, DI setup, startup routing
 └── appsettings.json            # Application configuration
 ```
@@ -389,16 +417,161 @@ NewLab/
 
 ---
 
-## 🎯 Next Steps (Phase 3)
-**Status**: Planned  
-**Goal**: Build core UI screens for business operations
+### ✅ Phase 5: Function 1 — Prerequisite Fix & Full Execution
+**Status**: Completed  
+**Date**: 2026-07-22
 
-**Planned Screens**:
-1. Patient Management (Add, Edit, Delete, Search)
-2. Lab Tests Management (Define tests, prices, normal ranges)
-3. Test Orders (Create orders for patients)
-4. Results Entry (Enter test results)
-5. Reports (Print test results, invoices)
+**Goal**: Resolve CP-1/CP-2 (current-user tracking gap), then execute all 15 parts of Function 1 (Add/Edit Patient Data) per `Docs/Handoff_Slice_1_2.md`.
+
+---
+
+#### 🔧 Critical Fix 8: ICurrentUserService — Current User Tracking (CP-1/CP-2)
+
+**Problem**: `IAuthService` only exposed `ValidateCredentialsAsync`, `HashPassword`, `VerifyPassword`, and `CreateAdminAccountAsync`. No API existed to query "who is the currently logged-in user" or their role after a successful login. `LoginViewModel.SignInAsync` received the `User` object from `ValidateCredentialsAsync` but discarded it immediately — never storing it anywhere accessible to the rest of the system. This prevented Decision 2 (Admin-only delete) from working correctly in Function 1 and all future functions (F3, F5, F6).
+
+**Solution**: Created `ICurrentUserService` (interface + Singleton implementation) as an additive service — `IAuthService` was not modified.
+
+**Files Created**:
+1. ✅ `Services/Interfaces/ICurrentUserService.cs`
+   - `User? CurrentUser { get; }` — nullable before login
+   - `bool IsAdmin { get; }` — checks `UserRoles.Any(ur => ur.Role?.Name == "Admin")`
+   - `void SetCurrentUser(User user)` — called after successful login
+   - `void Clear()` — for logout
+
+2. ✅ `Services/Implementations/CurrentUserService.cs`
+   - Registered as **Singleton** (not Scoped) — user identity must persist across Scoped service resolutions for the entire session lifetime
+
+**Files Modified**:
+1. ✅ `App.xaml.cs` — added `services.AddSingleton<ICurrentUserService, CurrentUserService>()`
+2. ✅ `ViewModels/Pages/LoginViewModel.cs`
+   - Added `ICurrentUserService` constructor dependency
+   - In `SignInAsync`: `_currentUserService.SetCurrentUser(user)` called before `OnSuccess?.Invoke()` — user is no longer discarded
+
+**Build Status**: 0 errors, 0 warnings
+
+---
+
+#### Function 1 Execution: 15/15 Parts Completed
+
+All 15 parts from `Docs/Handoff_Slice_1_2.md` executed sequentially with build verification after each.
+
+##### Files Created (20 files)
+
+```
+Models/Domain/Enums/Gender.cs              # Male, Female (no Both — Decision 17)
+Models/Domain/Enums/BillingSystem.cs        # Individual, LabToLab, Free
+Models/Domain/Enums/AgeUnit.cs              # Day, Month, Year
+Models/Domain/Enums/TestStatus.cs           # New, Entered, Reviewed, Printed, Delivered, AccountIssue, Completed
+Models/Domain/Enums/CodeType.cs             # Case, File, Lab
+Models/Domain/Referral.cs                   # Id, Name, DiscountPercent, IsDefaultLab, CreatedAt
+Models/Domain/SpecimenType.cs               # Id, Name, ArabicName
+Models/Domain/Patient.cs                    # 8 Boolean medical fields (Decision 1), all properties per spec
+Models/Domain/PatientVisit.cs               # Id, PatientId, VisitDate, DailySequenceNumber, FullVisitCode
+Models/Validation/PatientValidator.cs       # FluentValidation: FullName, Age ranges by AgeUnit, Gender, FastingHours
+Services/Interfaces/IPatientService.cs      # CRUD + CalculateTotalAsync + PatientTestRow record
+Services/Interfaces/IReferralService.cs     # SearchByNameAsync, GetOrCreateAsync, GetDefaultLabAsync
+Services/Implementations/PatientService.cs  # Full CRUD, Admin-check on DeleteAsync via ICurrentUserService
+Services/Implementations/ReferralService.cs # Autocomplete, auto-create, default lab retrieval
+ViewModels/Pages/PatientEntryViewModel.cs   # Full VM with all properties, commands, validation
+ViewModels/Pages/LabTestPlaceholder.cs      # Temporary record until Function 7
+Views/Pages/PatientEntryView.xaml           # 3-column layout: Patient data | Available tests | Selected tests + actions
+Views/Pages/PatientEntryView.xaml.cs        # Minimal code-behind (InitializeComponent + ComboBox population)
+Migrations/<timestamp>_AddPatientsAndReferrals.cs           # EF Core migration
+Migrations/<timestamp>_AddPatientsAndReferrals.Designer.cs  # Migration snapshot
+```
+
+##### Files Modified (6 files)
+
+```
+Data/NewLabDbContext.cs                     # +4 DbSets + Fluent API (6 relationships, 2 indexes, 3 decimal precision) + Seed default Referral
+App.xaml                                    # +DataTemplate mapping PatientEntryViewModel → PatientEntryView
+App.xaml.cs                                 # +4 Scoped services (IPatientService, IReferralService, IValidator<Patient>) + 1 Transient VM
+Views/Windows/MainWindow.xaml               # +Window.InputBindings (F2) + ContentControl replacing placeholder text
+ViewModels/Pages/MainDashboardViewModel.cs  # +CurrentFunctionView property + OpenFunction navigation logic + OpenPatientEntryCommand + TargetViewType on Patient function
+```
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 1** | 8 Boolean medical columns on Patient entity (IsFasting, IsOnAnticoagulant, HasLiverTreatment, HasAntiviralTreatment, HasAntibiotic, IsPregnant, IsSmoker, FastingHours) — no separate table, no text field |
+| **Decision 2** | `PatientService.DeleteAsync` checks `_currentUserService.IsAdmin` before proceeding; throws `UnauthorizedAccessException` if not Admin; `DeleteCommand.CanExecute` bound to `CanDelete => IsAdmin` |
+| **Decision 15** | `CalculateTotalAsync` signature accepts `Referral?` parameter for future ReferralPrices lookup (F7) — in F1 uses `PatientTestRow.Price` directly |
+| **Decision 17** | `Gender` enum contains only `Male` and `Female` — no `Both` value |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
+#### Technical Notes & Issues Resolved During Execution
+
+##### 1. Circular Dependency: Patient ↔ PatientVisit
+- **Issue**: `Patient.Visits` navigation property requires `PatientVisit` type, but `PatientVisit.Patient` requires `Patient` type. Parts 1.3 and 1.4 cannot be built independently.
+- **Resolution**: Created both entities in the same build step. Part 1.3 and 1.4 were verified together.
+
+##### 2. Name Collision: `LabId` Property vs `LabId` Command
+- **Issue**: `[ObservableProperty] private string? labId` generates a property named `LabId`. `[RelayCommand] private void LabId()` also targets a name that conflicts with the generated property in the CommunityToolkit.Mvvm source generator.
+- **Resolution**: Renamed the command method to `LookupLabId()`, generating `LookupLabIdCommand` instead.
+
+##### 3. MaterialDesign XAML Tag Not Found (MC3074)
+- **Issue**: `<materialDesign:MaterialDesignOutlinedTextBox>` does not exist as a direct XAML element in MaterialDesignThemes 5.x. Initial XAML contained this invalid tag.
+- **Resolution**: Replaced all instances with the correct pattern: `<TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="..." />` — consistent with the existing pattern in `LoginView.xaml`.
+
+##### 4. Enum Values in XAML x:Array
+- **Issue**: `x:Array` with enum types (e.g., `enums:Gender`, `enums:AgeUnit`) fails XAML compilation — the XAML parser cannot resolve enum values inline.
+- **Resolution**: Removed enum arrays from XAML. ComboBox items populated in code-behind (`PatientEntryView.xaml.cs`) by setting `ItemsSource` to explicit enum value arrays.
+
+##### 5. Incremental Build Hiding Warnings
+- **Issue**: `dotnet build` (incremental) showed 0 warnings, but `Clean + Rebuild` revealed the MC3074 XAML warning. Incremental builds skip XAML recompilation when .baml cache is valid.
+- **Resolution**: After fixing the XAML, verified with explicit `dotnet clean` then `dotnet build` — confirmed 0 errors, 0 warnings on full rebuild.
+
+##### 6. dotnet-ef 10.0.6 vs EF Core 8.0.8 Compatibility
+- **Issue**: Global tool `dotnet-ef` version 10.0.6 is newer than the project's EF Core 8.0.8.
+- **Resolution**: Migration generated correctly — `ProductVersion` in both the migration Designer.cs and ModelSnapshot.cs reads `8.0.8` (the project version, not the tool version). No compatibility warnings produced.
+
+---
+
+#### Database Migration: AddPatientsAndReferrals
+
+##### Migration Creation
+- ✅ EF Core migration `AddPatientsAndReferrals` created via `dotnet ef migrations add AddPatientsAndReferrals -c NewLabDbContext`
+- ✅ `ProductVersion` in migration and snapshot: `8.0.8` (project version)
+- ✅ Tables created: Referrals, SpecimenTypes, Patients, PatientVisits
+- ✅ Seed data: Default Referral ("المعمل", IsDefaultLab=true, DiscountPercent=0, CreatedAt=2026-01-01)
+- ✅ Fluent API: 6 relationships (3 Restrict, 1 Cascade, 2 required), 2 indexes (LabId unique filtered, FileCode unique), 4 decimal precision configurations
+
+##### Migration Application
+- ✅ Migration applied via `Update-Database` in Package Manager Console
+- ✅ `App.OnStartup` contains `await dbContext.Database.MigrateAsync()` — auto-apply on app start
+
+##### Verification (SQL Direct Queries)
+```
+Query: SELECT name FROM sys.tables 
+       WHERE name IN ('Patients','Referrals','SpecimenTypes','PatientVisits') 
+       ORDER BY name;
+Result: 4 rows — Patients, PatientVisits, Referrals, SpecimenTypes
+
+Query: SELECT * FROM __EFMigrationsHistory ORDER BY MigrationId;
+Result: 2 rows — 20260721171559_InitialCreate (8.0.8), 
+                  20260722032039_AddPatientsAndReferrals (8.0.8)
+```
+
+---
+
+## 🎯 Next Steps
+**Status**: In Progress  
+
+**Completed**:
+- ✅ Phase 5: Function 1 — Patient Management (Add/Edit) — 15/15 parts
+
+**Remaining Functions**:
+1. Function 2: Barcode generation (F2)
+2. Function 3: Test orders & results entry (F3)
+3. Function 4: Today's patients (F4)
+4. Function 5: Result delivery (F5)
+5. Function 6: Lab-to-lab interface (F6)
+6. Function 7: Lab test definitions & pricing (F7)
+7. Function 8: Reports & PDF generation (F8)
 
 ---
 
@@ -436,10 +609,15 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
                                                            └── Close MainWindow → LoginView
 ```
 
-### Database State (Post-Implementation)
+### Database State (Post-Phase 5)
 - **Users Table**: Contains initial admin user (e.g., `ahmed` / Ahmed Magdy)
 - **Roles Table**: Seeded with Admin (Id=1), Technician (Id=2), Receptionist (Id=3)
 - **UserRoles Table**: Admin user linked to Admin role via composite key
+- **Referrals Table**: Seeded with default lab ("المعمل", IsDefaultLab=true)
+- **SpecimenTypes Table**: Empty (ready for data entry)
+- **Patients Table**: Empty (ready for Function 1 data entry)
+- **PatientVisits Table**: Empty (ready for Function 1 visits)
+- **__EFMigrationsHistory**: 2 rows — InitialCreate + AddPatientsAndReferrals
 
 ---
 
@@ -461,7 +639,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 ---
 
 **Last Updated**: 2026-07-22  
-**Document Version**: 1.2
+**Document Version**: 1.3
 
 ---
 

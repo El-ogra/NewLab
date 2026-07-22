@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using FluentValidation;
 using NewLab.Data;
+using NewLab.Models.Domain;
+using NewLab.Models.Validation;
 using NewLab.Services.Implementations;
 using NewLab.Services.Interfaces;
 using NewLab.ViewModels.Pages;
@@ -27,6 +30,11 @@ namespace NewLab
                     // 2. Register our new Services (Scoped because they use DbContext)
                     services.AddScoped<IApplicationStartupService, ApplicationStartupService>();
                     services.AddScoped<IAuthService, AuthService>();
+                    services.AddScoped<IPatientService, PatientService>();
+                    services.AddScoped<IReferralService, ReferralService>();
+
+                    // 2.1 Register Validators
+                    services.AddScoped<IValidator<Patient>, PatientValidator>();
                     
                     // 3. Register existing services (from previous phases)
                     services.AddSingleton<ICurrentUserService, CurrentUserService>();
@@ -37,6 +45,7 @@ namespace NewLab
                     services.AddTransient<SetupViewModel>();
                     services.AddTransient<LoginViewModel>();
                     services.AddTransient<MainDashboardViewModel>();
+                    services.AddTransient<PatientEntryViewModel>();
                 })
                 .Build();
         }

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using MaterialDesignThemes.Wpf;
 using NewLab.Models.Domain;
 using NewLab.Services.Interfaces;
+using NewLab.Views.Pages;
 
 namespace NewLab.ViewModels.Pages
 {
@@ -17,6 +18,7 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private bool isDashboardMode = true;
         [ObservableProperty] private ToolbarItem? selectedCategory;
         [ObservableProperty] private object? currentContent;
+        [ObservableProperty] private object? currentFunctionView;
 
         public List<ToolbarItem> ToolbarCategories { get; }
 
@@ -48,7 +50,16 @@ namespace NewLab.ViewModels.Pages
             CurrentFunction = function;
             IsToolbarVisible = false;
             IsDashboardMode = false;
-            UpdateContent();
+
+            if (function.TargetViewType == typeof(PatientEntryView))
+            {
+                _navigationService.NavigateTo<PatientEntryViewModel>();
+                CurrentFunctionView = _navigationService.CurrentViewModel;
+            }
+            else
+            {
+                UpdateContent();
+            }
         }
 
         [RelayCommand]
@@ -64,6 +75,15 @@ namespace NewLab.ViewModels.Pages
         private void Exit()
         {
             Application.Current.Shutdown();
+        }
+
+        [RelayCommand]
+        private void OpenPatientEntry()
+        {
+            _navigationService.NavigateTo<PatientEntryViewModel>();
+            CurrentFunctionView = _navigationService.CurrentViewModel;
+            IsToolbarVisible = false;
+            IsDashboardMode = false;
         }
 
         private void UpdateContent()
@@ -83,7 +103,7 @@ namespace NewLab.ViewModels.Pages
                     Functions = new List<FunctionDefinition>
                     {
                         new FunctionDefinition { Name = "إدخال نتائج التحاليل", IconName = "Flask" },
-                        new FunctionDefinition { Name = "إضافة وتعديل بيانات المرضى", IconName = "AccountEdit" },
+                        new FunctionDefinition { Name = "إضافة وتعديل بيانات المرضى", IconName = "AccountEdit", TargetViewType = typeof(PatientEntryView) },
                         new FunctionDefinition { Name = "بحث عن مريض", IconName = "Magnify" },
                         new FunctionDefinition { Name = "تسليم نتائج المرضى", IconName = "FileCheck" }
                     }

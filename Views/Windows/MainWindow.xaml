@@ -9,6 +9,9 @@
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource MaterialDesignWindow}"
         FlowDirection="RightToLeft">
+    <Window.InputBindings>
+        <KeyBinding Key="F2" Command="{Binding OpenPatientEntryCommand}" />
+    </Window.InputBindings>
     <Window.Resources>
         <DataTemplate DataType="{x:Type models:FunctionDefinition}">
             <Button Command="{Binding DataContext.OpenFunctionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -116,16 +119,15 @@
                            Margin="0,0,0,20"
                            HorizontalAlignment="Center"
                            Foreground="{StaticResource PrimaryBrush}"/>
-                <TextBlock Text="محتوى الوظيفة سيظهر هنا..."
-                           FontSize="16"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,20"
-                           Foreground="Gray"/>
+                <ContentControl Content="{Binding CurrentFunctionView}"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"/>
                 <Button Command="{Binding CloseFunctionCommand}"
                         Content="العودة للرئيسية"
                         Style="{StaticResource MaterialDesignRaisedButton}"
                         HorizontalAlignment="Center"
-                        Padding="24,8"/>
+                        Padding="24,8"
+                        Margin="0,20,0,0"/>
             </StackPanel>
         </Grid>
     </Grid>

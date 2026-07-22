@@ -4,6 +4,8 @@
              xmlns:local="clr-namespace:NewLab"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:NewLab.Converters"
+             xmlns:vmpages="clr-namespace:NewLab.ViewModels.Pages"
+             xmlns:views="clr-namespace:NewLab.Views.Pages"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary>
@@ -11,6 +13,11 @@
                 <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Blue" SecondaryColor="Amber" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign2.Defaults.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- View-ViewModel DataTemplates -->
+            <DataTemplate DataType="{x:Type vmpages:PatientEntryViewModel}">
+                <views:PatientEntryView />
+            </DataTemplate>
 
             <!-- Converters -->
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
