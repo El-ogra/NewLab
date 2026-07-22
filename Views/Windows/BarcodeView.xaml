@@ -1,0 +1,166 @@
+<Window x:Class="NewLab.Views.Windows.BarcodeView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="طباعة الباركود"
+        FlowDirection="RightToLeft"
+        WindowStartupLocation="CenterOwner"
+        Height="700" Width="900"
+        MinHeight="600" MinWidth="700">
+
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding PrintAllCommand}" />
+    </Window.InputBindings>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Header + Print Buttons -->
+        <Border Grid.Row="0" Background="{DynamicResource MaterialDesignPaper}" Padding="10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Patient Info -->
+                <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center">
+                    <TextBlock Text="المريض: " FontSize="16" FontWeight="Bold" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Patient.FullName, FallbackValue=''}" FontSize="16" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Print Buttons -->
+                <WrapPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="طباعة كود الملف"
+                            Command="{Binding PrintFileCodeCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,5,0" />
+                    <Button Content="طباعة كود المعمل"
+                            Command="{Binding PrintLabCodeCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,5,0" />
+                    <Button Content="طباعة الكل"
+                            Command="{Binding PrintAllCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,10,0" />
+                    <CheckBox Content="طباعة كود الملف مع الكل"
+                              IsChecked="{Binding PrintFileCodeWithAll}"
+                              VerticalAlignment="Center"
+                              Margin="10,0,0,0" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 1: Labels List -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1" CornerRadius="4" Padding="5">
+            <ItemsControl ItemsSource="{Binding Labels}" x:Name="LabelsItemsControl">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1"
+                                CornerRadius="4" Padding="8" Margin="0,0,0,5"
+                                AllowDrop="True" Tag="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                MouseLeftButtonDown="Label_MouseLeftButtonDown"
+                                Drop="Label_Drop"
+                                DragOver="Label_DragOver">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Vertical">
+                                    <TextBlock Text="{Binding SpecimenName}" FontWeight="Bold" FontSize="13" />
+                                    <TextBlock Text="{Binding PatientName}" FontSize="11" Opacity="0.7" />
+                                    <TextBlock Text="{Binding Code}" FontSize="12" />
+                                    <ItemsControl ItemsSource="{Binding Tests}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="10" Opacity="0.6" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <Button Grid.Column="1" Content="طباعة"
+                                        Command="{Binding DataContext.PrintLabelCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        VerticalAlignment="Center"
+                                        Margin="10,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- Row 2: Offset + Label Dimensions -->
+        <Border Grid.Row="2" Background="{DynamicResource MaterialDesignPaper}" Padding="10" Margin="0,5,0,5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Offset X -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <TextBlock Text="X:" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <Slider Width="120" Value="{Binding OffsetX}" Minimum="-50" Maximum="50" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Offset Y -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
+                    <TextBlock Text="Y:" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <Slider Width="120" Value="{Binding OffsetY}" Minimum="-50" Maximum="50" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Label Dimensions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <TextBlock Text="العرض (مم):" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <TextBox Text="{Binding LabelWidth}" Width="45"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             materialDesign:HintAssist.Hint="مم"
+                             VerticalAlignment="Center" />
+                    <TextBlock Text="الارتفاع (مم):" VerticalAlignment="Center" Margin="10,0,5,0" />
+                    <TextBox Text="{Binding LabelHeight}" Width="45"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             materialDesign:HintAssist.Hint="مم"
+                             VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Save Settings -->
+                <Button Grid.Column="3" Content="حفظ الإحداثيات"
+                        Command="{Binding SaveSettingsCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Row 3: Add Extra Barcode -->
+        <Border Grid.Row="3" Background="{DynamicResource MaterialDesignPaper}" Padding="10" Margin="0,0,0,0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="تحليل إضافي:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" />
+                <TextBox Text="{Binding ExtraBarcodeName}" Width="150"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         materialDesign:HintAssist.Hint="اسم التحليل الإضافي"
+                         Margin="0,0,10,0" />
+                <TextBox Text="{Binding ExtraBarcodeDescription}" Width="200"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         materialDesign:HintAssist.Hint="وصف العينة"
+                         Margin="0,0,10,0" />
+                <Button Content="إضافة"
+                        Command="{Binding AddExtraBarcodeCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

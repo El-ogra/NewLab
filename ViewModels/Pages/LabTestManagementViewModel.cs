@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentValidation;
@@ -18,6 +19,7 @@ namespace NewLab.ViewModels.Pages
         private readonly INavigationService _navigationService;
         private readonly IValidator<LabTest> _labTestValidator;
         private readonly ICurrentUserService _currentUserService;
+        private readonly Func<NormalRangeViewModel> _normalRangeVmFactory;
 
         public ObservableCollection<LabTest> Tests { get; } = new();
         public ObservableCollection<SpecimenType> AvailableSpecimenTypes { get; } = new();
@@ -77,7 +79,8 @@ namespace NewLab.ViewModels.Pages
             IDialogService dialogService,
             INavigationService navigationService,
             IValidator<LabTest> labTestValidator,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            Func<NormalRangeViewModel> normalRangeVmFactory)
         {
             _labTestService = labTestService;
             _referralService = referralService;
@@ -85,6 +88,7 @@ namespace NewLab.ViewModels.Pages
             _navigationService = navigationService;
             _labTestValidator = labTestValidator;
             _currentUserService = currentUserService;
+            _normalRangeVmFactory = normalRangeVmFactory;
 
             _ = LoadInitialDataAsync();
         }
@@ -206,9 +210,25 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OpenNormalRange()
+        private async Task OpenNormalRangeAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 8");
+            if (SelectedTest == null)
+            {
+                _dialogService.ShowMessage("خطأ", "اختر تحليلاً أولاً");
+                return;
+            }
+
+            var vm = _normalRangeVmFactory();
+            var test = await _labTestService.GetByIdAsync(SelectedTest.Id);
+            if (test == null) return;
+            await vm.LoadForTest(test);
+
+            var window = new Views.Windows.NormalRangeView
+            {
+                DataContext = vm,
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            window.ShowDialog();
         }
 
         [RelayCommand(CanExecute = nameof(CanAddReferralPrice))]

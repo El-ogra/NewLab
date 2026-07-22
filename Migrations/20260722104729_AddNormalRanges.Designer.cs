@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewLab.Data;
 
@@ -11,9 +12,11 @@ using NewLab.Data;
 namespace NewLab.Migrations
 {
     [DbContext(typeof(NewLabDbContext))]
-    partial class NewLabDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722104729_AddNormalRanges")]
+    partial class AddNormalRanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,45 +24,6 @@ namespace NewLab.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("NewLab.Models.Domain.BarcodeSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("LabelHeight")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LabelWidth")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OffsetX")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OffsetY")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("PrintFileCodeWithAll")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("BarcodeSettings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            LabelHeight = 25,
-                            LabelWidth = 38,
-                            OffsetX = 0,
-                            OffsetY = 0,
-                            PrintFileCodeWithAll = false
-                        });
-                });
 
             modelBuilder.Entity("NewLab.Models.Domain.LabTest", b =>
                 {
@@ -482,38 +446,6 @@ namespace NewLab.Migrations
                     b.ToTable("Patients");
                 });
 
-            modelBuilder.Entity("NewLab.Models.Domain.PatientCode", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CodeType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CodeValue")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("IssuedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CodeValue");
-
-                    b.HasIndex("PatientId", "CodeType")
-                        .IsUnique();
-
-                    b.ToTable("PatientCodes");
-                });
-
             modelBuilder.Entity("NewLab.Models.Domain.PatientVisit", b =>
                 {
                     b.Property<int>("Id")
@@ -852,17 +784,6 @@ namespace NewLab.Migrations
                     b.Navigation("ExternalSpecimenType");
 
                     b.Navigation("Referral");
-                });
-
-            modelBuilder.Entity("NewLab.Models.Domain.PatientCode", b =>
-                {
-                    b.HasOne("NewLab.Models.Domain.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("NewLab.Models.Domain.PatientVisit", b =>

@@ -20,6 +20,8 @@ namespace NewLab.ViewModels.Pages
         private readonly INavigationService _navigationService;
         private readonly IValidator<Patient> _patientValidator;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IBarcodeService _barcodeService;
+        private readonly Func<BarcodeViewModel> _barcodeViewModelFactory;
 
         // Patient fields
         [ObservableProperty] private string fullName = string.Empty;
@@ -80,7 +82,9 @@ namespace NewLab.ViewModels.Pages
             IDialogService dialogService,
             INavigationService navigationService,
             IValidator<Patient> patientValidator,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IBarcodeService barcodeService,
+            Func<BarcodeViewModel> barcodeViewModelFactory)
         {
             _patientService = patientService;
             _referralService = referralService;
@@ -89,6 +93,8 @@ namespace NewLab.ViewModels.Pages
             _navigationService = navigationService;
             _patientValidator = patientValidator;
             _currentUserService = currentUserService;
+            _barcodeService = barcodeService;
+            _barcodeViewModelFactory = barcodeViewModelFactory;
 
             _ = LoadAvailableTestsAsync();
         }
@@ -192,9 +198,38 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void PrintBarcode()
+        private async Task PrintBarcodeAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 2");
+            if (_editingPatientId == null && string.IsNullOrWhiteSpace(FullName))
+            {
+                _dialogService.ShowMessage("خطأ", "يرجى حفظ المريض أولاً");
+                return;
+            }
+
+            Patient? patient;
+            if (_editingPatientId != null)
+            {
+                patient = await _patientService.GetByIdAsync(_editingPatientId.Value);
+                if (patient == null)
+                {
+                    _dialogService.ShowMessage("خطأ", "لم يتم العثور على المريض");
+                    return;
+                }
+            }
+            else
+            {
+                patient = BuildPatientFromForm();
+            }
+
+            var vm = _barcodeViewModelFactory();
+            await vm.LoadForPatientAsync(patient);
+
+            var window = new NewLab.Views.Windows.BarcodeView
+            {
+                DataContext = vm,
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            window.ShowDialog();
         }
 
         [RelayCommand]
@@ -246,9 +281,31 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void LookupLabId()
+        private async Task LookupLabIdAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 2");
+            if (_editingPatientId == null)
+            {
+                _dialogService.ShowMessage("خطأ", "يرجى حفظ المريض أولاً");
+                return;
+            }
+
+            var patient = await _patientService.GetByIdAsync(_editingPatientId.Value);
+            if (patient == null)
+            {
+                _dialogService.ShowMessage("خطأ", "لم يتم العثور على المريض");
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(patient.LabId))
+            {
+                LabId = patient.LabId;
+                _dialogService.ShowMessage("معلومة", $"Lab ID موجود مسبقاً: {patient.LabId}");
+                return;
+            }
+
+            var updated = await _barcodeService.GetOrCreateLabIdAsync(patient);
+            LabId = updated.LabId;
+            _dialogService.ShowMessage("نجاح", $"تم إنشاء Lab ID: {updated.LabId}");
         }
 
         [RelayCommand]

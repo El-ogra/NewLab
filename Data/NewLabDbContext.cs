@@ -21,6 +21,9 @@ namespace NewLab.Data
         public DbSet<LabTest> LabTests { get; set; }
         public DbSet<LabTestElement> LabTestElements { get; set; }
         public DbSet<ReferralPrice> ReferralPrices { get; set; }
+        public DbSet<NormalRange> NormalRanges { get; set; }
+        public DbSet<BarcodeSettings> BarcodeSettings { get; set; }
+        public DbSet<PatientCode> PatientCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -187,14 +190,56 @@ namespace NewLab.Data
                 .Property(rp => rp.Price)
                 .HasColumnType("decimal(18,2)");
 
-            // 13. Seed TestGroups
+            // 13. NormalRange configurations
+            modelBuilder.Entity<NormalRange>()
+                .HasOne(nr => nr.LabTest)
+                .WithMany()
+                .HasForeignKey(nr => nr.LabTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<NormalRange>()
+                .HasIndex(nr => new { nr.LabTestId, nr.Gender, nr.AgeFrom, nr.AgeTo, nr.AgeUnit });
+
+            modelBuilder.Entity<NormalRange>().Property(nr => nr.LowLimit).HasColumnType("decimal(18,4)");
+            modelBuilder.Entity<NormalRange>().Property(nr => nr.HighLimit).HasColumnType("decimal(18,4)");
+            modelBuilder.Entity<NormalRange>().Property(nr => nr.CriticalLowLimit).HasColumnType("decimal(18,4)");
+            modelBuilder.Entity<NormalRange>().Property(nr => nr.CriticalHighLimit).HasColumnType("decimal(18,4)");
+
+            // 14. BarcodeSettings — single row seeded with defaults (Decision 4)
+            modelBuilder.Entity<BarcodeSettings>().HasData(
+                new BarcodeSettings
+                {
+                    Id = 1,
+                    OffsetX = 0,
+                    OffsetY = 0,
+                    PrintFileCodeWithAll = false,
+                    LabelWidth = 38,
+                    LabelHeight = 25
+                }
+            );
+
+            // 15. PatientCode configurations
+            modelBuilder.Entity<PatientCode>()
+                .HasOne(pc => pc.Patient)
+                .WithMany()
+                .HasForeignKey(pc => pc.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PatientCode>()
+                .HasIndex(pc => new { pc.PatientId, pc.CodeType })
+                .IsUnique();
+
+            modelBuilder.Entity<PatientCode>()
+                .HasIndex(pc => pc.CodeValue);
+
+            // 16. Seed TestGroups
             modelBuilder.Entity<TestGroup>().HasData(
                 new TestGroup { Id = 1, Name = "Chemistry", LogGroup = "CHEM" },
                 new TestGroup { Id = 2, Name = "Hematology", LogGroup = "HEM" },
                 new TestGroup { Id = 3, Name = "Urine", LogGroup = "URI" }
             );
 
-            // 14. Seed LabTests
+            // 17. Seed LabTests
             modelBuilder.Entity<LabTest>().HasData(
                 new LabTest
                 {

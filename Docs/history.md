@@ -45,6 +45,8 @@
 | Mapster | 7.4.0 | Object-to-object mapping (faster alternative to AutoMapper) |
 | Mapster.DependencyInjection | 1.0.1 | Mapster DI integration |
 | QuestPDF | 2026.7.1 | PDF report generation |
+| ZXing.Net | 0.16.11 | Barcode image generation (Code128 format) — see Exceptions below |
+| ZXing.Net.Bindings.Windows.Compatibility | 0.16.14 | ZXing Windows System.Drawing bindings for .NET 8 |
 
 ---
 
@@ -56,9 +58,10 @@ NewLab/
 ├── Converters/                 # IValueConverter implementations
 │   └── InverseBoolToVisibilityConverter.cs
 ├── Data/                       # EF Core DbContext and design-time factories
-│   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole, Patient, Referral, SpecimenType, PatientVisit, TestGroup, LabTest, LabTestElement, ReferralPrice
+│   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole, Patient, Referral, SpecimenType, PatientVisit, TestGroup, LabTest, LabTestElement, ReferralPrice, NormalRange, BarcodeSettings, PatientCode
 │   └── NewLabDbContextFactory.cs # Design-time factory for EF Core tooling
 ├── Helpers/                    # Extension methods, utility classes
+│   └── BarcodeImageGenerator.cs # ZXing.Net CODE_128 barcode generation helper (NEW Phase 8)
 ├── Models/                     # Domain entities and DTOs
 │   ├── Domain/                 # Rich domain models
 │   │   ├── Enums/              # NEW (Phase 5)
@@ -77,10 +80,15 @@ NewLab/
 │   │   ├── TestGroup.cs        # NEW (Phase 6)
 │   │   ├── LabTest.cs          # NEW (Phase 6) — 25 properties, no Branch (Decision 5)
 │   │   ├── LabTestElement.cs   # NEW (Phase 6)
-│   │   └── ReferralPrice.cs    # NEW (Phase 6) — Decision 15
+│   │   ├── ReferralPrice.cs    # NEW (Phase 6) — Decision 15
+│   │   ├── NormalRange.cs      # NEW (Phase 7) — 20 fields, decimal(18,4) precision, Gender=Male/Female only
+│   │   ├── BarcodeSettings.cs  # NEW (Phase 8) — Id, OffsetX, OffsetY, PrintFileCodeWithAll, LabelWidth, LabelHeight
+│   │   ├── BarcodeLabel.cs     # NEW (Phase 8) — Transient (no DbSet), barcode label layout data
+│   │   └── PatientCode.cs      # NEW (Phase 8) — Patient code records (LabCode, FileCode)
 │   ├── Validation/             # NEW (Phase 5)
 │   │   ├── PatientValidator.cs
-│   │   └── LabTestValidator.cs # NEW (Phase 6)
+│   │   ├── LabTestValidator.cs # NEW (Phase 6)
+│   │   └── NormalRangeValidator.cs # NEW (Phase 7)
 │   └── DTOs/                   # Data transfer objects
 ├── Resources/                  # Shared XAML resources
 │   ├── Styles/                 # Control styles, themes
@@ -95,7 +103,10 @@ NewLab/
 │   │   ├── ICurrentUserService.cs         # NEW (Phase 5) — current user tracking
 │   │   ├── IPatientService.cs             # NEW (Phase 5)
 │   │   ├── IReferralService.cs            # NEW (Phase 5)
-│   │   └── ILabTestService.cs             # NEW (Phase 6)
+│   │   ├── ILabTestService.cs             # NEW (Phase 6)
+│   │   ├── INormalRangeService.cs         # NEW (Phase 7) — CRUD + GetMatchingRangeAsync + EvaluateValueAsync
+│   │   ├── IBarcodeService.cs             # NEW (Phase 8) — Code generation + PatientCode records
+│   │   └── IBarcodePrintService.cs        # NEW (Phase 8) — PDF barcode generation
 │   ├── Implementations/        # Concrete implementations
 │   │   ├── NavigationService.cs
 │   │   ├── DialogService.cs
@@ -104,7 +115,10 @@ NewLab/
 │   │   ├── CurrentUserService.cs          # NEW (Phase 5) — Singleton
 │   │   ├── PatientService.cs              # NEW (Phase 5), MODIFIED (Phase 6) — ReferralPrices query
 │   │   ├── ReferralService.cs             # NEW (Phase 5)
-│   │   └── LabTestService.cs              # NEW (Phase 6)
+│   │   ├── LabTestService.cs              # NEW (Phase 6)
+│   │   ├── NormalRangeService.cs          # NEW (Phase 7) — Decision 16 (narrowest range wins)
+│   │   ├── BarcodeService.cs              # NEW (Phase 8) — BranchConstant="1", BuildCode13
+│   │   └── BarcodePrintService.cs         # NEW (Phase 8) — QuestPDF, LabelWidth×LabelHeight mm
 │   └── Factories/              # ViewModel factories
 ├── ViewModels/                 # MVVM ViewModels
 │   ├── Base/                   # ViewModelBase, shared base classes
@@ -114,13 +128,15 @@ NewLab/
 │   │   ├── LoginViewModel.cs   # Login form logic
 │   │   ├── MainDashboardViewModel.cs  # Toolbar navigation shell
 │   │   ├── IconNameToKindConverter.cs # Icon name to PackIconKind converter
-│   │   ├── PatientEntryViewModel.cs   # NEW (Phase 5), MODIFIED (Phase 6) — ILabTestService injection
-│   │   └── LabTestManagementViewModel.cs  # NEW (Phase 6)
+│   │   ├── PatientEntryViewModel.cs   # NEW (Phase 5), MODIFIED (Phase 6) — ILabTestService injection, MODIFIED (Phase 8) — IBarcodeService + Func<BarcodeViewModel>
+│   │   ├── LabTestManagementViewModel.cs  # NEW (Phase 6), MODIFIED (Phase 7) — Func<NormalRangeViewModel>
+│   │   ├── NormalRangeViewModel.cs    # NEW (Phase 7) — 16 form fields, 7 commands, Decision 16 + 17
+│   │   └── BarcodeViewModel.cs        # NEW (Phase 8) — 10 properties, 7 commands, drag-and-drop support
 │   ├── Dialogs/                # Dialog ViewModels
 │   └── Components/             # Reusable component ViewModels
 ├── Views/                      # WPF Views
 │   ├── Pages/                  # NEW (Phase 5)
-│   │   ├── PatientEntryView.xaml      # NEW (Phase 5), MODIFIED (Phase 6) — ListBox bindings
+│   │   ├── PatientEntryView.xaml      # NEW (Phase 5), MODIFIED (Phase 6) — ListBox bindings, MODIFIED (Phase 8) — F11 InputBinding
 │   │   ├── PatientEntryView.xaml.cs
 │   │   ├── LabTestManagementView.xaml # NEW (Phase 6)
 │   │   └── LabTestManagementView.xaml.cs # NEW (Phase 6)
@@ -133,13 +149,17 @@ NewLab/
 │   └── Windows/                # Shell windows
 │       ├── SetupView.xaml/.cs  # First-time setup wizard
 │       ├── LoginView.xaml/.cs  # Login screen (green/yellow theme)
-│       └── MainWindow.xaml/.cs # Main application shell
+│       ├── MainWindow.xaml/.cs # Main application shell
+│       ├── NormalRangeView.xaml/.cs    # NEW (Phase 7) — 3-column RTL, Ranges list + Form + Commands
+│       └── BarcodeView.xaml/.cs        # NEW (Phase 8) — 4-row RTL, Labels + Drag&Drop + Offset + Extra
 ├── Docs/                       # Project documentation
 │   └── history.md              # This file
 ├── Migrations/                 # EF Core migrations
 │   ├── 20260721171559_InitialCreate.cs
 │   ├── 20260722032039_AddPatientsAndReferrals.cs  # NEW (Phase 5)
-│   └── 20260722063244_AddLabTestsAndReferralPrices.cs  # NEW (Phase 6)
+│   ├── 20260722063244_AddLabTestsAndReferralPrices.cs  # NEW (Phase 6)
+│   ├── 20260722104729_AddNormalRanges.cs           # NEW (Phase 7)
+│   └── 20260722110834_AddBarcodeSettingsAndPatientCodes.cs  # NEW (Phase 8)
 ├── App.xaml                    # Application resources, MaterialDesign theme, DataTemplates
 ├── App.xaml.cs                 # Application entry point, DI setup, startup routing
 └── appsettings.json            # Application configuration
@@ -675,21 +695,156 @@ Result: 2 rows — 20260721171559_InitialCreate (8.0.8),
 
 ---
 
+### ✅ Phase 7: Function 8 — Normal Range Management
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 10 parts of Function 8 (Add/Edit Normal Ranges per test) per `Docs/Handoff_Slice_8&2_2.md`, including retro-integration with Function 7 (LabTestManagementViewModel → NormalRangeView).
+
+---
+
+#### Function 8 Execution: 10/10 Parts Completed
+
+All 10 parts executed sequentially with build verification after each.
+
+##### Files Created (9 files)
+
+```
+Models/Domain/NormalRange.cs              # 20 fields + LabTest nav, decimal(18,4) precision, Gender=Male/Female only (Decision 17)
+Models/Validation/NormalRangeValidator.cs # FluentValidation: LabTestId, TestName, Gender (IsInEnum + Male/Female), Low≤High, AgeFrom≤AgeTo, CriticalLow≤Low, CriticalHigh≥High
+Services/Interfaces/INormalRangeService.cs # CRUD + GetMatchingRangeAsync + EvaluateValueAsync + NormalRangeEvaluation record
+Services/Implementations/NormalRangeService.cs # Full impl: Admin-check on DeleteAsync, Decision 16 (narrowest range wins), ConvertAgeToUnit
+ViewModels/Pages/NormalRangeViewModel.cs  # Full VM: 16 form fields, AvailableGenders (Male/Female only), 7 commands, LoadForTest
+Views/Windows/NormalRangeView.xaml        # 3-column RTL Window (700×1000): Ranges list | Form (Normal+Critical sections) | Commands + LatinSymbolsPad
+Views/Windows/NormalRangeView.xaml.cs     # InitializeComponent + Gender/AgeUnit ComboBox population (Technical Note 4)
+Migrations/20260722104729_AddNormalRanges.cs           # EF Core migration
+Migrations/20260722104729_AddNormalRanges.Designer.cs  # Migration snapshot
+```
+
+##### Files Modified (3 files)
+
+```
+Data/NewLabDbContext.cs                  # +DbSet<NormalRange> + Fluent API (HasOne→WithMany, composite index, 4×decimal(18,4))
+App.xaml.cs                              # +Scoped INormalRangeService, +Scoped IValidator<NormalRange>, +Transient NormalRangeViewModel (Parts 8.5, 8.8)
+ViewModels/Pages/LabTestManagementViewModel.cs # RETRO: Func<NormalRangeViewModel> injected, OpenNormalRange→OpenNormalRangeAsync (Part 8.8)
+```
+
+##### Files Deleted (0 files)
+
+No files were deleted in Function 8.
+
+##### Retro-Integration with Function 7
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| `OpenNormalRange` → `OpenNormalRangeAsync` | `ViewModels/Pages/LabTestManagementViewModel.cs` | Placeholder `_dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 8")` replaced with: null-check on SelectedTest → factory-create NormalRangeVM → LoadForTest → ShowDialog |
+| Constructor added `Func<NormalRangeViewModel>` | `ViewModels/Pages/LabTestManagementViewModel.cs` | Factory pattern — NormalRangeViewModel registered as Transient in DI, container resolves Func<T> automatically |
+| DI registration | `App.xaml.cs` | `services.AddTransient<NormalRangeViewModel>()` added |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 14** | `LatinSymbolsPad` UserControl reused in NormalRangeView (Column 2) — no modification needed |
+| **Decision 16** | `GetMatchingRangeAsync`: filters by Gender + Age range, then `OrderBy(nr => nr.AgeTo - nr.AgeFrom).First()` — narrowest matching range wins |
+| **Decision 17** | `AvailableGenders` = Male/Female only — no `Both`; enforced in entity, validator, and ViewModel |
+| **CP-F8-1** | No navigation collection on `LabTest` — access only via `INormalRangeService.GetForTestAsync(labTestId)` |
+| **CP-F8-2** | `TestUnit` is manual entry per range, inherited as default from first range for same test |
+| **CP-F8-3** | `NormalRangeText` is fully manual, no auto-generation from LowLimit/HighLimit |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
+### ✅ Phase 8: Function 2 — Barcode Printing & Patient Codes
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 13 parts of Function 2 (Barcode generation, printing, and settings) per `Docs/Handoff_Slice_8&2_2.md`, including retro-integration with Function 1 (PatientEntryViewModel → BarcodeView).
+
+---
+
+#### Function 2 Execution: 13/13 Parts Completed
+
+All 13 parts executed sequentially with build verification after each.
+
+##### Files Created (12 files)
+
+```
+Models/Domain/BarcodeSettings.cs          # Id, OffsetX, OffsetY, PrintFileCodeWithAll, LabelWidth=38, LabelHeight=25 (Decision 4), no BranchNumber (Decision 5)
+Models/Domain/BarcodeLabel.cs             # Transient (no DbSet): PatientId, PatientName, SpecimenTypeId, SpecimenName, Tests, Code, Type
+Models/Domain/PatientCode.cs              # Id, PatientId, CodeType, CodeValue, IssuedAt, Patient nav — per CP-F2-2
+Services/Interfaces/IBarcodeService.cs    # 7 methods: GenerateCaseCode, GenerateFileCode, GenerateLabCode, GetOrCreateLabIdAsync, GetLabelsForPatientAsync, GetSettingsAsync, SaveSettingsAsync
+Services/Implementations/BarcodeService.cs # BranchConstant="1", BuildCode13 (13-char format), PatientCode records in GetOrCreateLabIdAsync
+Services/Interfaces/IBarcodePrintService.cs # GeneratePdf(labels, settings) → byte[]
+Services/Implementations/BarcodePrintService.cs # QuestPDF Community license, LabelWidth×LabelHeight mm pages, BarcodeImageGenerator integration, BitmapSourceExtensions helper
+Helpers/BarcodeImageGenerator.cs          # Static helper: ZXing.Net CODE_128, BarcodeWriter<Bitmap>, ConvertToBitmapSource
+ViewModels/Pages/BarcodeViewModel.cs      # Full VM: 10 properties, 7 commands (PrintFileCode, PrintLabCode, PrintLabel, PrintAll, SaveSettings, AddExtraBarcode, RemoveLabel), CanPrintLabCode=LabId!=null
+Views/Windows/BarcodeView.xaml            # 4-row RTL Window (700×900): Print buttons + CheckBox | Labels ItemsControl + Drag&Drop | Offset Sliders + LabelWidth/Height + Save | Extra barcode inputs
+Views/Windows/BarcodeView.xaml.cs         # InitializeComponent + Drag&Drop handlers (MouseLeftButtonDown, DragOver, Drop) — pure UI logic in code-behind per CP-F2-4
+Migrations/20260722110834_AddBarcodeSettingsAndPatientCodes.cs           # EF Core migration
+Migrations/20260722110834_AddBarcodeSettingsAndPatientCodes.Designer.cs  # Migration snapshot
+```
+
+##### Files Modified (4 files)
+
+```
+Data/NewLabDbContext.cs                  # +DbSet<BarcodeSettings>, +DbSet<PatientCode> + Fluent API (seed, relationships, indexes) (Part 2.3)
+App.xaml.cs                              # +Scoped IBarcodeService, +Scoped IBarcodePrintService, +Transient BarcodeViewModel (Parts 2.6, 2.8, 2.11)
+NewLab.csproj                            # +ZXing.Net 0.16.11, +ZXing.Net.Bindings.Windows.Compatibility 0.16.14 (Part 2.7)
+ViewModels/Pages/PatientEntryViewModel.cs # RETRO: IBarcodeService + Func<BarcodeViewModel> injected, PrintBarcode→PrintBarcodeAsync, LookupLabId→LookupLabIdAsync (Part 2.12)
+```
+
+##### Files Deleted (0 files)
+
+No files were deleted in Function 2.
+
+##### Retro-Integration with Function 1
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| `PrintBarcode` → `PrintBarcodeAsync` | `ViewModels/Pages/PatientEntryViewModel.cs` | Placeholder replaced with: null-check on patient → factory-create BarcodeVM → LoadForPatientAsync → ShowDialog |
+| `LookupLabId` → `LookupLabIdAsync` | `ViewModels/Pages/PatientEntryViewModel.cs` | Placeholder replaced with: null-check → check existing LabId → `_barcodeService.GetOrCreateLabIdAsync(patient)` → set LabId property |
+| Constructor added `IBarcodeService` + `Func<BarcodeViewModel>` | `ViewModels/Pages/PatientEntryViewModel.cs` | Factory pattern — same as Phase 7 NormalRangeViewModel pattern |
+| InputBinding F11 | `Views/Pages/PatientEntryView.xaml` | UNCHANGED — `PrintBarcodeCommand` generated by CommunityToolkit from `PrintBarcodeAsync` (same name, no break) |
+
+##### Exceptions & Technical Decisions
+
+| Part | What Changed | Why | Impact |
+|------|-------------|-----|--------|
+| **Part 2.5** — BarcodeService Constructor | Constructor receives `NewLabDbContext context` only (no `IPatientService`) | All Services in this project use DbContext directly — no Service injects another Service. Adding `IPatientService` would create the only exception to this pattern. Patient operations (`_context.Patients.FirstOrDefaultAsync`, `_context.Patients.Update`) are simple and don't need the abstraction layer. | No functional impact — identical behavior. Architecturally consistent with PatientService, LabTestService, NormalRangeService, etc. |
+| **Part 2.7** — ZXing.Net version | Installed `ZXing.Net` 0.16.11 instead of Handoff-specified 0.16.9 | `ZXing.Net.Bindings.Windows.Compatibility 0.16.14` requires `ZXing.Net >= 0.16.11` for net8.0 target (enforced by NuGet dependency resolution). The Handoff specification of 0.16.9 + Bindings 0.16.14 is internally contradictory for .NET 8. Version 0.16.11 is a maintenance release (bug fixes only, no API changes) published 2025-10-26. | No functional impact — API compatible. Downgrading to 0.16.9 would cause NuGet restore failure. |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 3** | `ZXing.Net` exclusively — no BarcodeStandard or other libraries |
+| **Decision 4** | `LabelWidth=38mm, LabelHeight=25mm` defaults in BarcodeSettings seed + BarcodeViewModel; customizable via TextBoxes in BarcodeView |
+| **Decision 5** | `BranchConstant = "1"` — no BranchNumber column in DB (verified: 0 columns), branch position hardcoded in BuildCode13 |
+| **CP-F2-1** | DailySequenceNumber = count of today's actual visits + 1 (computed in GenerateCaseCode from PatientVisit) |
+| **CP-F2-2** | PatientCode entity created (not deferred to F6) — migration now, simpler than retro-integration later |
+| **CP-F2-3** | `QuestPDF.Settings.License = LicenseType.Community` — suitable for <$1M revenue |
+| **CP-F2-4** | Drag & Drop via code-behind event handlers in BarcodeView (not attached behaviors) — pure visual behavior, no DB state change |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
 ## 🎯 Next Steps
 **Status**: In Progress  
 
 **Completed**:
 - ✅ Phase 5: Function 1 — Patient Management (Add/Edit) — 15/15 parts
 - ✅ Phase 6: Function 7 — Lab Test Definitions & Pricing — 11/11 parts
+- ✅ Phase 7: Function 8 — Normal Range Management — 10/10 parts
+- ✅ Phase 8: Function 2 — Barcode Printing & Patient Codes — 13/13 parts
 
 **Remaining Functions**:
-1. Function 2: Barcode generation (F2)
-2. Function 3: Test orders & results entry (F3)
-3. Function 4: Today's patients (F4)
-4. Function 5: Result delivery (F5)
-5. Function 6: Lab-to-lab interface (F6)
-6. Function 7: Lab test definitions & pricing (F7)
-7. Function 8: Reports & PDF generation (F8)
+1. Function 3: Test orders & results entry (F3)
+2. Function 4: Today's patients (F4)
+3. Function 5: Result delivery (F5)
+4. Function 6: Lab-to-lab interface (F6)
 
 ---
 
@@ -727,7 +882,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
                                                            └── Close MainWindow → LoginView
 ```
 
-### Database State (Post-Phase 6)
+### Database State (Post-Phase 8)
 - **Users Table**: Contains initial admin user (e.g., `ahmed` / Ahmed Magdy)
 - **Roles Table**: Seeded with Admin (Id=1), Technician (Id=2), Receptionist (Id=3)
 - **UserRoles Table**: Admin user linked to Admin role via composite key
@@ -739,7 +894,10 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 - **LabTests Table**: Seeded with Glucose, Hemoglobin, Urine Analysis
 - **LabTestElements Table**: Empty (ready for Function 4)
 - **ReferralPrices Table**: Empty (ready for Function 7 data entry)
-- **__EFMigrationsHistory**: 3 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices
+- **NormalRanges Table**: Empty (ready for Normal Range data entry via F8 UI) — NEW (Phase 7)
+- **BarcodeSettings Table**: Seeded with 1 row (Id=1, OffsetX=0, OffsetY=0, PrintFileCodeWithAll=false, LabelWidth=38, LabelHeight=25) — NEW (Phase 8)
+- **PatientCodes Table**: Empty (ready for Patient Code records via F2) — NEW (Phase 8)
+- **__EFMigrationsHistory**: 5 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices + AddNormalRanges + AddBarcodeSettingsAndPatientCodes
 
 ---
 
@@ -761,7 +919,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 ---
 
 **Last Updated**: 2026-07-22  
-**Document Version**: 1.4
+**Document Version**: 1.5
 
 ---
 
