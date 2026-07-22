@@ -15,6 +15,7 @@ namespace NewLab.ViewModels.Pages
     {
         private readonly IPatientService _patientService;
         private readonly IReferralService _referralService;
+        private readonly ILabTestService _labTestService;
         private readonly IDialogService _dialogService;
         private readonly INavigationService _navigationService;
         private readonly IValidator<Patient> _patientValidator;
@@ -62,17 +63,20 @@ namespace NewLab.ViewModels.Pages
 
         // Collections
         public ObservableCollection<PatientTestRow> SelectedTests { get; } = new();
-        public ObservableCollection<LabTestPlaceholder> AvailableTests { get; } = new();
+        public ObservableCollection<LabTest> AvailableTests { get; } = new();
         public ObservableCollection<Referral> ReferralSuggestions { get; } = new();
 
         // Permissions (Decision 2)
         public bool IsAdmin => _currentUserService.IsAdmin;
+
+        [ObservableProperty] private LabTest? selectedAvailableTest;
 
         private int? _editingPatientId;
 
         public PatientEntryViewModel(
             IPatientService patientService,
             IReferralService referralService,
+            ILabTestService labTestService,
             IDialogService dialogService,
             INavigationService navigationService,
             IValidator<Patient> patientValidator,
@@ -80,10 +84,13 @@ namespace NewLab.ViewModels.Pages
         {
             _patientService = patientService;
             _referralService = referralService;
+            _labTestService = labTestService;
             _dialogService = dialogService;
             _navigationService = navigationService;
             _patientValidator = patientValidator;
             _currentUserService = currentUserService;
+
+            _ = LoadAvailableTestsAsync();
         }
 
         [RelayCommand]
@@ -193,11 +200,23 @@ namespace NewLab.ViewModels.Pages
         [RelayCommand]
         private void AddSelectedTest()
         {
-            // TODO: to be implemented in Function 7 with ILabTestService
+            if (SelectedAvailableTest == null) return;
+
+            decimal price = BillingSystem switch
+            {
+                BillingSystem.Individual => SelectedAvailableTest.PatientPrice,
+                BillingSystem.LabToLab => SelectedAvailableTest.LabToLabPrice,
+                BillingSystem.Free => 0m,
+                _ => SelectedAvailableTest.PatientPrice
+            };
+
+            var row = new PatientTestRow(SelectedAvailableTest.Id, SelectedAvailableTest.TestName, price);
+            SelectedTests.Add(row);
+            _ = RecalculateTotalAsync();
         }
 
         [RelayCommand]
-        private void RemoveTest(LabTestPlaceholder? test)
+        private void RemoveTest(LabTest? test)
         {
             if (test == null) return;
             var row = SelectedTests.FirstOrDefault(t => t.LabTestId == test.Id);
@@ -277,6 +296,14 @@ namespace NewLab.ViewModels.Pages
             TotalAmount = await _patientService.CalculateTotalAsync(
                 SelectedTests, BillingSystem, referral, DiscountValue, DiscountIsPercent);
             Remaining = TotalAmount - PaidAmount;
+        }
+
+        private async Task LoadAvailableTestsAsync()
+        {
+            var tests = await _labTestService.GetRoutineTestsAsync();
+            AvailableTests.Clear();
+            foreach (var t in tests)
+                AvailableTests.Add(t);
         }
 
         private Patient BuildPatientFromForm()

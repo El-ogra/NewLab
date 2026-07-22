@@ -56,6 +56,11 @@ namespace NewLab.ViewModels.Pages
                 _navigationService.NavigateTo<PatientEntryViewModel>();
                 CurrentFunctionView = _navigationService.CurrentViewModel;
             }
+            else if (function.TargetViewType == typeof(LabTestManagementView))
+            {
+                _navigationService.NavigateTo<LabTestManagementViewModel>();
+                CurrentFunctionView = _navigationService.CurrentViewModel;
+            }
             else
             {
                 UpdateContent();
@@ -148,7 +153,10 @@ namespace NewLab.ViewModels.Pages
                     IconKind = PackIconKind.Database,
                     Label = "بيانات النظام",
                     Category = "SystemData",
-                    Functions = new List<FunctionDefinition>()
+                    Functions = new List<FunctionDefinition>
+                    {
+                        new FunctionDefinition { Name = "بيانات التحاليل", IconName = "TestTube", TargetViewType = typeof(LabTestManagementView) }
+                    }
                 },
                 new ToolbarItem
                 {

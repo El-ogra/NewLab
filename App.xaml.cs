@@ -32,9 +32,11 @@ namespace NewLab
                     services.AddScoped<IAuthService, AuthService>();
                     services.AddScoped<IPatientService, PatientService>();
                     services.AddScoped<IReferralService, ReferralService>();
+                    services.AddScoped<ILabTestService, LabTestService>();
 
                     // 2.1 Register Validators
                     services.AddScoped<IValidator<Patient>, PatientValidator>();
+                    services.AddScoped<IValidator<LabTest>, LabTestValidator>();
                     
                     // 3. Register existing services (from previous phases)
                     services.AddSingleton<ICurrentUserService, CurrentUserService>();
@@ -46,6 +48,7 @@ namespace NewLab
                     services.AddTransient<LoginViewModel>();
                     services.AddTransient<MainDashboardViewModel>();
                     services.AddTransient<PatientEntryViewModel>();
+                    services.AddTransient<LabTestManagementViewModel>();
                 })
                 .Build();
         }

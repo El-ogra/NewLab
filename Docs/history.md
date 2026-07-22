@@ -56,7 +56,7 @@ NewLab/
 ├── Converters/                 # IValueConverter implementations
 │   └── InverseBoolToVisibilityConverter.cs
 ├── Data/                       # EF Core DbContext and design-time factories
-│   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole, Patient, Referral, SpecimenType, PatientVisit
+│   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole, Patient, Referral, SpecimenType, PatientVisit, TestGroup, LabTest, LabTestElement, ReferralPrice
 │   └── NewLabDbContextFactory.cs # Design-time factory for EF Core tooling
 ├── Helpers/                    # Extension methods, utility classes
 ├── Models/                     # Domain entities and DTOs
@@ -73,9 +73,14 @@ NewLab/
 │   │   ├── Patient.cs          # NEW (Phase 5) — 8 Boolean medical fields
 │   │   ├── PatientVisit.cs     # NEW (Phase 5)
 │   │   ├── Referral.cs         # NEW (Phase 5)
-│   │   └── SpecimenType.cs     # NEW (Phase 5)
+│   │   ├── SpecimenType.cs     # NEW (Phase 5)
+│   │   ├── TestGroup.cs        # NEW (Phase 6)
+│   │   ├── LabTest.cs          # NEW (Phase 6) — 25 properties, no Branch (Decision 5)
+│   │   ├── LabTestElement.cs   # NEW (Phase 6)
+│   │   └── ReferralPrice.cs    # NEW (Phase 6) — Decision 15
 │   ├── Validation/             # NEW (Phase 5)
-│   │   └── PatientValidator.cs
+│   │   ├── PatientValidator.cs
+│   │   └── LabTestValidator.cs # NEW (Phase 6)
 │   └── DTOs/                   # Data transfer objects
 ├── Resources/                  # Shared XAML resources
 │   ├── Styles/                 # Control styles, themes
@@ -89,15 +94,17 @@ NewLab/
 │   │   ├── IAuthService.cs                # Login, password hashing, account creation
 │   │   ├── ICurrentUserService.cs         # NEW (Phase 5) — current user tracking
 │   │   ├── IPatientService.cs             # NEW (Phase 5)
-│   │   └── IReferralService.cs            # NEW (Phase 5)
+│   │   ├── IReferralService.cs            # NEW (Phase 5)
+│   │   └── ILabTestService.cs             # NEW (Phase 6)
 │   ├── Implementations/        # Concrete implementations
 │   │   ├── NavigationService.cs
 │   │   ├── DialogService.cs
 │   │   ├── ApplicationStartupService.cs   # Checks if Users table is empty
 │   │   ├── AuthService.cs                 # BCrypt hashing, credential validation
 │   │   ├── CurrentUserService.cs          # NEW (Phase 5) — Singleton
-│   │   ├── PatientService.cs              # NEW (Phase 5)
-│   │   └── ReferralService.cs             # NEW (Phase 5)
+│   │   ├── PatientService.cs              # NEW (Phase 5), MODIFIED (Phase 6) — ReferralPrices query
+│   │   ├── ReferralService.cs             # NEW (Phase 5)
+│   │   └── LabTestService.cs              # NEW (Phase 6)
 │   └── Factories/              # ViewModel factories
 ├── ViewModels/                 # MVVM ViewModels
 │   ├── Base/                   # ViewModelBase, shared base classes
@@ -107,18 +114,22 @@ NewLab/
 │   │   ├── LoginViewModel.cs   # Login form logic
 │   │   ├── MainDashboardViewModel.cs  # Toolbar navigation shell
 │   │   ├── IconNameToKindConverter.cs # Icon name to PackIconKind converter
-│   │   ├── PatientEntryViewModel.cs   # NEW (Phase 5)
-│   │   └── LabTestPlaceholder.cs      # NEW (Phase 5) — temporary until F7
+│   │   ├── PatientEntryViewModel.cs   # NEW (Phase 5), MODIFIED (Phase 6) — ILabTestService injection
+│   │   └── LabTestManagementViewModel.cs  # NEW (Phase 6)
 │   ├── Dialogs/                # Dialog ViewModels
 │   └── Components/             # Reusable component ViewModels
 ├── Views/                      # WPF Views
 │   ├── Pages/                  # NEW (Phase 5)
-│   │   ├── PatientEntryView.xaml
-│   │   └── PatientEntryView.xaml.cs
+│   │   ├── PatientEntryView.xaml      # NEW (Phase 5), MODIFIED (Phase 6) — ListBox bindings
+│   │   ├── PatientEntryView.xaml.cs
+│   │   ├── LabTestManagementView.xaml # NEW (Phase 6)
+│   │   └── LabTestManagementView.xaml.cs # NEW (Phase 6)
 │   ├── Dialogs/                # Modal dialogs
 │   ├── Controls/               # Reusable UserControls
 │   │   ├── DashboardContentControl.xaml/.cs
-│   │   └── FunctionPlaceholderControl.xaml/.cs
+│   │   ├── FunctionPlaceholderControl.xaml/.cs
+│   │   ├── LatinSymbolsPad.xaml       # NEW (Phase 6) — Decision 14
+│   │   └── LatinSymbolsPad.xaml.cs    # NEW (Phase 6)
 │   └── Windows/                # Shell windows
 │       ├── SetupView.xaml/.cs  # First-time setup wizard
 │       ├── LoginView.xaml/.cs  # Login screen (green/yellow theme)
@@ -127,7 +138,8 @@ NewLab/
 │   └── history.md              # This file
 ├── Migrations/                 # EF Core migrations
 │   ├── 20260721171559_InitialCreate.cs
-│   └── 20260722032039_AddPatientsAndReferrals.cs  # NEW (Phase 5)
+│   ├── 20260722032039_AddPatientsAndReferrals.cs  # NEW (Phase 5)
+│   └── 20260722063244_AddLabTestsAndReferralPrices.cs  # NEW (Phase 6)
 ├── App.xaml                    # Application resources, MaterialDesign theme, DataTemplates
 ├── App.xaml.cs                 # Application entry point, DI setup, startup routing
 └── appsettings.json            # Application configuration
@@ -503,6 +515,111 @@ ViewModels/Pages/MainDashboardViewModel.cs  # +CurrentFunctionView property + Op
 
 ---
 
+### ✅ Phase 6: Function 7 — Lab Test Definitions & Pricing
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 11 parts of Function 7 (Add/Edit Lab Test Data) per `Docs/Handoff_Slice_7_2.md`, including retro-integration with Function 1 (PatientService.CalculateTotalAsync ReferralPrices lookup, LabTestPlaceholder replacement).
+
+---
+
+#### Function 7 Execution: 11/11 Parts Completed
+
+All 11 parts executed sequentially with build verification after each.
+
+##### Files Created (14 files)
+
+```
+Models/Domain/TestGroup.cs               # Id, Name, LogGroup, ICollection<LabTest> Tests
+Models/Domain/LabTest.cs                 # 25 properties (no Branch — Decision 5), navigation props
+Models/Domain/LabTestElement.cs          # Id, ParentLabTestId, Name, ArrangeNumber, IsMainTest
+Models/Domain/ReferralPrice.cs           # Id, LabTestId, ReferralId, Price (Decision 15)
+Models/Validation/LabTestValidator.cs    # FluentValidation: Code, TestName, ReportNameLarge, prices ≥ 0
+Services/Interfaces/ILabTestService.cs   # CRUD + SearchAsync + GetRoutineTestsAsync + ReferralPrices methods
+Services/Implementations/LabTestService.cs # Full impl with ICurrentUserService.Admin check on DeleteAsync
+ViewModels/Pages/LabTestManagementViewModel.cs # Full VM: 17 form fields, search, referral prices, commands
+Views/Controls/LatinSymbolsPad.xaml      # Reusable UserControl (Decision 14): α β γ μ ± ≤ ≥ °
+Views/Controls/LatinSymbolsPad.xaml.cs   # DependencyProperty TargetTextBox + Symbols
+Views/Pages/LabTestManagementView.xaml   # 3-column RTL layout: test list | form | referral prices
+Views/Pages/LabTestManagementView.xaml.cs # Minimal code-behind
+Migrations/<timestamp>_AddLabTestsAndReferralPrices.cs          # EF Core migration
+Migrations/<timestamp>_AddLabTestsAndReferralPrices.Designer.cs # Migration snapshot
+```
+
+##### Files Modified (5 files)
+
+```
+Data/NewLabDbContext.cs                  # +4 DbSets + Fluent API (10 configurations) + Seed (3 TestGroups, 3 LabTests)
+App.xaml                                 # +DataTemplate LabTestManagementViewModel → LabTestManagementView
+App.xaml.cs                              # +Scoped ILabTestService, +Scoped IValidator<LabTest>, +Transient LabTestManagementViewModel
+ViewModels/Pages/MainDashboardViewModel.cs # +FunctionDefinition "بيانات التحاليل" in SystemData + OpenFunction branch
+Services/Implementations/PatientService.cs # CalculateTotalAsync: async + _context.ReferralPrices lookup (retro F1)
+```
+
+##### Files Deleted (1 file)
+
+```
+ViewModels/Pages/LabTestPlaceholder.cs   # Replaced by real LabTest entity
+```
+
+##### Retro-Integration with Function 1
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| PatientService.CalculateTotalAsync | `Services/Implementations/PatientService.cs` | LabToLab branch now queries `_context.ReferralPrices` with fallback to `test.Price`; method converted to async |
+| PatientEntryViewModel.AvailableTests | `ViewModels/Pages/PatientEntryViewModel.cs` | Type changed from `ObservableCollection<LabTestPlaceholder>` to `ObservableCollection<LabTest>` |
+| PatientEntryViewModel constructor | `ViewModels/Pages/PatientEntryViewModel.cs` | Added `ILabTestService` injection + `_ = LoadAvailableTestsAsync()` (fire-and-forget per CP-2) |
+| AddSelectedTestCommand | `ViewModels/Pages/PatientEntryViewModel.cs` | Implemented: reads `SelectedAvailableTest`, builds `PatientTestRow` by BillingSystem, adds to `SelectedTests` |
+| RemoveTest signature | `ViewModels/Pages/PatientEntryViewModel.cs` | Changed from `RemoveTest(LabTestPlaceholder?)` to `RemoveTest(LabTest?)` |
+| PatientEntryView ListBox | `Views/Pages/PatientEntryView.xaml` | Added `DisplayMemberPath="TestName"` and `SelectedItem="{Binding SelectedAvailableTest}"` |
+| LabTestPlaceholder.cs | Deleted | No longer needed |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 5** | No `Branch` field on `LabTest`, `TestGroup`, or anywhere in F7 — branch fixed to "1" in code |
+| **Decision 14** | `LatinSymbolsPad` created as independent reusable `UserControl` with `DependencyProperty TargetTextBox` and `DependencyProperty Symbols` (extensible) |
+| **Decision 15** | `ReferralPrice` entity created, `ReferralPrices` DbSet + table in DB, `ILabTestService` has `GetReferralPricesAsync`/`SetReferralPriceAsync`/`DeleteReferralPriceAsync`, `PatientService.CalculateTotalAsync` queries real `ReferralPrices` table |
+
+##### Clarification Points Applied
+
+| CP | Decision | Implementation |
+|----|----------|---------------|
+| **CP-1** (Back button) | No separate `BackCommand` in `LabTestManagementViewModel` | Relies on existing generic "العودة للرئيسية" button in MainWindow (bound to `CloseFunctionCommand`) |
+| **CP-2** (Load AvailableTests) | Fire-and-forget from constructor | `_ = LoadAvailableTestsAsync();` in `PatientEntryViewModel` constructor — matches existing `_ = RecalculateTotalAsync();` pattern |
+| **CP-3** (Admin-only delete) | Yes — Admin only | `LabTestService.DeleteAsync` checks `_currentUserService.IsAdmin`; `DeleteCommand.CanExecute` bound to `IsAdmin` in VM |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
+#### Database Migration: AddLabTestsAndReferralPrices
+
+##### Migration Creation
+- ✅ EF Core migration created via `dotnet ef migrations add AddLabTestsAndReferralPrices -c NewLabDbContext`
+- ✅ `ProductVersion` in migration and snapshot: `8.0.8` (project version)
+- ✅ Tables created: TestGroups, LabTests, LabTestElements, ReferralPrices
+- ✅ Unique indexes: `LabTests.Code`, `ReferralPrices(LabTestId, ReferralId)`
+- ✅ Seed data: 3 TestGroups (Chemistry, Hematology, Urine), 3 LabTests (Glucose, Hemoglobin, Urine Analysis)
+
+##### Migration Application
+- ✅ Migration applied via `dotnet ef database update -c NewLabDbContext`
+
+##### Verification
+```
+Migration list:
+- 20260721171559_InitialCreate
+- 20260722032039_AddPatientsAndReferrals
+- 20260722063244_AddLabTestsAndReferralPrices
+
+Tables confirmed (via generated SQL script):
+- TestGroups ✅
+- LabTests ✅
+- LabTestElements ✅
+- ReferralPrices ✅
+```
+
 #### Technical Notes & Issues Resolved During Execution
 
 ##### 1. Circular Dependency: Patient ↔ PatientVisit
@@ -563,6 +680,7 @@ Result: 2 rows — 20260721171559_InitialCreate (8.0.8),
 
 **Completed**:
 - ✅ Phase 5: Function 1 — Patient Management (Add/Edit) — 15/15 parts
+- ✅ Phase 6: Function 7 — Lab Test Definitions & Pricing — 11/11 parts
 
 **Remaining Functions**:
 1. Function 2: Barcode generation (F2)
@@ -609,7 +727,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
                                                            └── Close MainWindow → LoginView
 ```
 
-### Database State (Post-Phase 5)
+### Database State (Post-Phase 6)
 - **Users Table**: Contains initial admin user (e.g., `ahmed` / Ahmed Magdy)
 - **Roles Table**: Seeded with Admin (Id=1), Technician (Id=2), Receptionist (Id=3)
 - **UserRoles Table**: Admin user linked to Admin role via composite key
@@ -617,7 +735,11 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 - **SpecimenTypes Table**: Empty (ready for data entry)
 - **Patients Table**: Empty (ready for Function 1 data entry)
 - **PatientVisits Table**: Empty (ready for Function 1 visits)
-- **__EFMigrationsHistory**: 2 rows — InitialCreate + AddPatientsAndReferrals
+- **TestGroups Table**: Seeded with Chemistry, Hematology, Urine (Decision 5 — no Branch field)
+- **LabTests Table**: Seeded with Glucose, Hemoglobin, Urine Analysis
+- **LabTestElements Table**: Empty (ready for Function 4)
+- **ReferralPrices Table**: Empty (ready for Function 7 data entry)
+- **__EFMigrationsHistory**: 3 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices
 
 ---
 
@@ -639,7 +761,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 ---
 
 **Last Updated**: 2026-07-22  
-**Document Version**: 1.3
+**Document Version**: 1.4
 
 ---
 

@@ -1,0 +1,278 @@
+<UserControl x:Class="NewLab.Views.Pages.LabTestManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:controls="clr-namespace:NewLab.Views.Controls"
+             FlowDirection="RightToLeft">
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
+    </UserControl.InputBindings>
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Column 1 (Right in RTL): Test List + Search -->
+        <Border Grid.Column="0" Margin="0,0,8,0" Padding="12" CornerRadius="8"
+                BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="قائمة التحاليل" FontSize="18" FontWeight="Bold"
+                           Margin="0,0,0,8" Foreground="{StaticResource PrimaryBrush}"/>
+
+                <TextBox Grid.Row="1"
+                         Text="{Binding SearchByCode, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="بحث بالكود"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,8"/>
+
+                <TextBox Grid.Row="2"
+                         Text="{Binding SearchByGroupName, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="بحث باسم المجموعة"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,8"/>
+
+                <TextBox Grid.Row="3"
+                         Text="{Binding SearchByTestName, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="بحث باسم التحليل"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,8"/>
+
+                <Button Grid.Row="4" Content="بحث"
+                        Command="{Binding SearchCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        HorizontalAlignment="Stretch" Padding="16,8" Margin="0,0,0,8"/>
+
+                <ListBox Grid.Row="5" ItemsSource="{Binding Tests}"
+                         SelectedItem="{Binding SelectedTest}"
+                         DisplayMemberPath="TestName"
+                         Margin="0,0,0,8"/>
+            </Grid>
+        </Border>
+
+        <!-- Column 2 (Middle): Test Data Form -->
+        <Border Grid.Column="1" Margin="4,0,4,0" Padding="12" CornerRadius="8"
+                BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="بيانات التحليل" FontSize="18" FontWeight="Bold"
+                               Margin="0,0,0,12" Foreground="{StaticResource PrimaryBrush}"/>
+
+                    <TextBox x:Name="CodeTextBox"
+                             Text="{Binding FormCode, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="كود التحليل"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormTestName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم التحليل"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormReportNameLarge, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم التقرير (كبير)"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormReportNameSmall, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم التقرير (صغير)"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormBillNameLarge, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم الفاتورة (كبير)"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormBillNameSmall, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم الفاتورة (صغير)"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormHistoryName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم التاريخ"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormArabicName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="الاسم العربي"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <ComboBox materialDesign:HintAssist.Hint="مجموعة التحليل"
+                              SelectedItem="{Binding FormTestGroupId}"
+                              Margin="0,0,0,8"
+                              x:Name="TestGroupCombo"/>
+
+                    <TextBox Text="{Binding FormLogGroup, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="مجموعة السجل"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormCollection, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="شروط سحب العينة"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding FormTestTimeDays, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="مدة التحليل (أيام)"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding FormArrangeNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="رقم الترتيب"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="4,0,0,0"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding FormPatientPrice, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="سعر المريض"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding FormLabToLabPrice, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="سعر المعمل للمعمل"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="4,0,0,0"/>
+                    </Grid>
+
+                    <CheckBox Content="تحاليل روتينية" IsChecked="{Binding FormIsRoutine}" Margin="0,0,0,4"/>
+                    <CheckBox Content="عرض التقرير" IsChecked="{Binding FormIsSeeReport}" Margin="0,0,0,4"/>
+                    <CheckBox Content="طباعة مع غيرها" IsChecked="{Binding FormIsPrintWithOther}" Margin="0,0,0,4"/>
+                    <CheckBox Content="إضافة مع مجموعة" IsChecked="{Binding FormIsAddWithGroup}" Margin="0,0,0,4"/>
+                    <CheckBox Content="تحليل رئيسي" IsChecked="{Binding FormIsMainTest}" Margin="0,0,0,4"/>
+                    <CheckBox Content="نشط" IsChecked="{Binding FormIsActive}" Margin="0,0,0,8"/>
+
+                    <ComboBox materialDesign:HintAssist.Hint="نوع العينة الافتراضي"
+                              SelectedItem="{Binding FormDefaultSpecimenTypeId}"
+                              Margin="0,0,0,8"
+                              x:Name="SpecimenTypeCombo"/>
+
+                    <CheckBox Content="يُرسل للخارج" IsChecked="{Binding FormIsSentExternal}" Margin="0,0,0,4"/>
+
+                    <ComboBox materialDesign:HintAssist.Hint="الجهة الخارجية"
+                              SelectedItem="{Binding FormExternalReferralId}"
+                              Margin="0,0,0,8"
+                              x:Name="ExternalReferralCombo"
+                              IsEnabled="{Binding FormIsSentExternal}"/>
+
+                    <TextBox Text="{Binding FormExternalCost, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="تكلفة الإرسال الخارجي"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             IsEnabled="{Binding FormIsSentExternal}"
+                             Margin="0,0,0,8"/>
+
+                    <TextBox Text="{Binding FormPromptQuestion, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="الأسئلة / التنبيهات"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
+                    <controls:LatinSymbolsPad TargetTextBox="{Binding ElementName=CodeTextBox}" Margin="0,0,0,8"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Column 3 (Left): Referral Prices -->
+        <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="8"
+                BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="أسعار الجهات" FontSize="18" FontWeight="Bold"
+                           Margin="0,0,0,8" Foreground="{StaticResource PrimaryBrush}"/>
+
+                <DataGrid Grid.Row="1" ItemsSource="{Binding ReferralPrices}"
+                          SelectedItem="{Binding SelectedReferralPrice}"
+                          AutoGenerateColumns="False" IsReadOnly="True"
+                          CanUserAddRows="False" Margin="0,0,0,8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="الجهة" Binding="{Binding Referral.Name}" Width="*"/>
+                        <DataGridTextColumn Header="السعر" Binding="{Binding Price, StringFormat={}{0:F2}}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <ComboBox Grid.Row="2"
+                          materialDesign:HintAssist.Hint="اختر الجهة"
+                          SelectedItem="{Binding NewReferralPrice_ReferralId}"
+                          ItemsSource="{Binding AvailableReferrals}"
+                          DisplayMemberPath="Name"
+                          Margin="0,0,0,8"/>
+
+                <TextBox Grid.Row="3"
+                         Text="{Binding NewReferralPrice_Price, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="السعر"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,8"/>
+
+                <Button Grid.Row="4" Content="إضافة سعر"
+                        Command="{Binding AddReferralPriceCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        HorizontalAlignment="Stretch" Padding="16,8" Margin="0,0,0,8"/>
+
+                <Button Grid.Row="5" Content="حذف السعر"
+                        Command="{Binding DeleteReferralPriceCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        HorizontalAlignment="Stretch" Padding="16,8" Margin="0,0,0,8"/>
+            </Grid>
+        </Border>
+
+        <!-- Bottom Command Bar -->
+        <WrapPanel Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <Button Content="إضافة"
+                    Command="{Binding AddCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Margin="4" Padding="16,8"/>
+            <Button Content="تعديل"
+                    Command="{Binding EditCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Margin="4" Padding="16,8"/>
+            <Button Content="حذف"
+                    Command="{Binding DeleteCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Margin="4" Padding="16,8"/>
+            <Button Content="حفظ"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Margin="4" Padding="16,8"/>
+            <Button Content="إلغاء"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Margin="4" Padding="16,8"/>
+            <Button Content="المعدل الطبيعي"
+                    Command="{Binding OpenNormalRangeCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Margin="4" Padding="16,8"/>
+        </WrapPanel>
+    </Grid>
+</UserControl>

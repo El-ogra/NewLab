@@ -17,6 +17,10 @@ namespace NewLab.Data
         public DbSet<Referral> Referrals { get; set; }
         public DbSet<SpecimenType> SpecimenTypes { get; set; }
         public DbSet<PatientVisit> PatientVisits { get; set; }
+        public DbSet<TestGroup> TestGroups { get; set; }
+        public DbSet<LabTest> LabTests { get; set; }
+        public DbSet<LabTestElement> LabTestElements { get; set; }
+        public DbSet<ReferralPrice> ReferralPrices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -111,6 +115,131 @@ namespace NewLab.Data
                     DiscountPercent = 0,
                     IsDefaultLab = true,
                     CreatedAt = new DateTime(2026, 1, 1)
+                }
+            );
+
+            // 10. LabTest configurations
+            modelBuilder.Entity<LabTest>()
+                .HasIndex(l => l.Code)
+                .IsUnique();
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(l => l.TestGroup)
+                .WithMany(g => g.Tests)
+                .HasForeignKey(l => l.TestGroupId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(l => l.ParentLabTest)
+                .WithMany()
+                .HasForeignKey(l => l.ParentLabTestId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(l => l.DefaultSpecimenType)
+                .WithMany()
+                .HasForeignKey(l => l.DefaultSpecimenTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LabTest>()
+                .HasOne(l => l.ExternalReferral)
+                .WithMany()
+                .HasForeignKey(l => l.ExternalReferralId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LabTest>()
+                .Property(l => l.PatientPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<LabTest>()
+                .Property(l => l.LabToLabPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<LabTest>()
+                .Property(l => l.ExternalCost)
+                .HasColumnType("decimal(18,2)");
+
+            // 11. LabTestElement configurations
+            modelBuilder.Entity<LabTestElement>()
+                .HasOne(e => e.ParentLabTest)
+                .WithMany(t => t.Elements)
+                .HasForeignKey(e => e.ParentLabTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 12. ReferralPrice configurations
+            modelBuilder.Entity<ReferralPrice>()
+                .HasOne(rp => rp.LabTest)
+                .WithMany(t => t.ReferralPrices)
+                .HasForeignKey(rp => rp.LabTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ReferralPrice>()
+                .HasOne(rp => rp.Referral)
+                .WithMany()
+                .HasForeignKey(rp => rp.ReferralId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ReferralPrice>()
+                .HasIndex(rp => new { rp.LabTestId, rp.ReferralId })
+                .IsUnique();
+
+            modelBuilder.Entity<ReferralPrice>()
+                .Property(rp => rp.Price)
+                .HasColumnType("decimal(18,2)");
+
+            // 13. Seed TestGroups
+            modelBuilder.Entity<TestGroup>().HasData(
+                new TestGroup { Id = 1, Name = "Chemistry", LogGroup = "CHEM" },
+                new TestGroup { Id = 2, Name = "Hematology", LogGroup = "HEM" },
+                new TestGroup { Id = 3, Name = "Urine", LogGroup = "URI" }
+            );
+
+            // 14. Seed LabTests
+            modelBuilder.Entity<LabTest>().HasData(
+                new LabTest
+                {
+                    Id = 1,
+                    Code = "GLU",
+                    TestName = "Glucose",
+                    ReportNameLarge = "Glucose",
+                    ArabicName = "سكر",
+                    TestGroupId = 1,
+                    PatientPrice = 10m,
+                    LabToLabPrice = 30m,
+                    IsRoutine = true,
+                    IsActive = true,
+                    TestTimeDays = 0,
+                    ArrangeNumber = 1
+                },
+                new LabTest
+                {
+                    Id = 2,
+                    Code = "HGB",
+                    TestName = "Hemoglobin",
+                    ReportNameLarge = "Hemoglobin",
+                    ArabicName = "هموغلوبين",
+                    TestGroupId = 2,
+                    PatientPrice = 15m,
+                    LabToLabPrice = 35m,
+                    IsRoutine = true,
+                    IsActive = true,
+                    TestTimeDays = 0,
+                    ArrangeNumber = 2
+                },
+                new LabTest
+                {
+                    Id = 3,
+                    Code = "UAC",
+                    TestName = "Urine Analysis",
+                    ReportNameLarge = "Urine Analysis",
+                    ArabicName = "تحليل بول",
+                    TestGroupId = 3,
+                    PatientPrice = 8m,
+                    LabToLabPrice = 20m,
+                    IsRoutine = true,
+                    IsActive = true,
+                    TestTimeDays = 0,
+                    ArrangeNumber = 3
                 }
             );
         }

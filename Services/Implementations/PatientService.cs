@@ -79,7 +79,7 @@ namespace NewLab.Services.Implementations
                 .FirstOrDefaultAsync(p => p.LabId == labId);
         }
 
-        public Task<decimal> CalculateTotalAsync(IEnumerable<PatientTestRow> patientTests, BillingSystem billingSystem, Referral? referral, decimal discountValue, bool discountIsPercent)
+        public async Task<decimal> CalculateTotalAsync(IEnumerable<PatientTestRow> patientTests, BillingSystem billingSystem, Referral? referral, decimal discountValue, bool discountIsPercent)
         {
             decimal total = 0;
 
@@ -90,8 +90,18 @@ namespace NewLab.Services.Implementations
                     case BillingSystem.Free:
                         break;
                     case BillingSystem.LabToLab:
-                        // In F1: use PatientTestRow.Price directly (ReferralPrices table not yet created in F7)
-                        total += test.Price;
+                        decimal priceForThisTest = test.Price;
+                        if (referral != null)
+                        {
+                            var referralPrice = await _context.ReferralPrices
+                                .FirstOrDefaultAsync(rp => rp.LabTestId == test.LabTestId
+                                                        && rp.ReferralId == referral.Id);
+                            if (referralPrice != null)
+                            {
+                                priceForThisTest = referralPrice.Price;
+                            }
+                        }
+                        total += priceForThisTest;
                         break;
                     case BillingSystem.Individual:
                     default:
@@ -119,7 +129,7 @@ namespace NewLab.Services.Implementations
                 }
             }
 
-            return Task.FromResult(Math.Max(0, total));
+            return Math.Max(0, total);
         }
     }
 }
