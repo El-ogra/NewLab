@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace NewLab.Models.Domain
@@ -16,7 +17,9 @@ namespace NewLab.Models.Domain
         [MaxLength(50)]
         public string FullVisitCode { get; set; } = string.Empty;
 
-        // Navigation property
+        // Navigation properties
         public Patient Patient { get; set; } = null!;
+
+        public ICollection<PatientTest> PatientTests { get; set; } = new List<PatientTest>();
     }
 }

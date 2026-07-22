@@ -1,0 +1,131 @@
+<Window x:Class="NewLab.Views.Windows.TestResultEntryView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Test Result Entry"
+        Height="750" Width="1100"
+        WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft">
+    <Window.InputBindings>
+        <KeyBinding Key="F8" Command="{Binding ToggleReviewedCommand}" />
+        <KeyBinding Key="F9" Command="{Binding SaveCommand}" />
+        <KeyBinding Key="F11" Command="{Binding PreviewCommand}" />
+        <KeyBinding Key="F12" Command="{Binding PrintCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding BackCommand}" />
+    </Window.InputBindings>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Patient info -->
+        <Border Grid.Row="0" Padding="12" Margin="0,0,0,12" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1" CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Patient" FontWeight="Bold" Foreground="Gray"/>
+                    <TextBlock Text="{Binding PatientName}" FontSize="16" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Lab ID" FontWeight="Bold" Foreground="Gray"/>
+                    <TextBlock Text="{Binding PatientLabId}" FontSize="16"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Test" FontWeight="Bold" Foreground="Gray"/>
+                    <TextBlock Text="{Binding TestTitle}" FontSize="16"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 1: Results DataGrid -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding ResultRows}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="False"
+                  SelectionMode="Single"
+                  Margin="0,0,0,12">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Element" Binding="{Binding Name}" IsReadOnly="True" Width="*"/>
+                <DataGridTemplateColumn Header="Value" Width="150">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Padding="4"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" IsReadOnly="True" Width="80"/>
+                <DataGridTemplateColumn Header="Flag" IsReadOnly="True" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding CellColor}">
+                                <TextBlock Text="{Binding FlagText}" Padding="4" HorizontalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Row 2: Commands -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Comment + Saved Comments -->
+            <StackPanel Grid.Column="0">
+                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         materialDesign:HintAssist.Hint="Comment"
+                         Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" TextWrapping="Wrap" Height="60"
+                         Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Saved Comments" Command="{Binding PickSavedCommentCommand}"
+                            Margin="0,0,8,0" Padding="12,6"/>
+                    <Button Content="Comment from Normal Range"
+                            Margin="0,0,8,0" Padding="12,6"/>
+                    <Button Content="Undo Comment"
+                            Margin="0,0,8,0" Padding="12,6"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Right: Action buttons -->
+            <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                <Button Content="F9 - Save" Command="{Binding SaveCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="F12 - Print" Command="{Binding PrintCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="F11 - Preview" Command="{Binding PreviewCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="F8 - Reviewed" Command="{Binding ToggleReviewedCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="{Binding HistoryButtonLabel}" Command="{Binding OpenHistoryCommand}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="Esc - Back" Command="{Binding BackCommand}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="Main Menu" Command="{Binding MainMenuCommand}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Margin="4" Padding="12,8"/>
+                <Button Content="Constants" Command="{Binding EditConstantsCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Margin="4" Padding="12,8"/>
+            </WrapPanel>
+        </Grid>
+    </Grid>
+</Window>

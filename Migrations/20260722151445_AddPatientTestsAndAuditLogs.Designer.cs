@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewLab.Data;
 
@@ -11,9 +12,11 @@ using NewLab.Data;
 namespace NewLab.Migrations
 {
     [DbContext(typeof(NewLabDbContext))]
-    partial class NewLabDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722151445_AddPatientTestsAndAuditLogs")]
+    partial class AddPatientTestsAndAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,104 +103,6 @@ namespace NewLab.Migrations
                             OffsetX = 0,
                             OffsetY = 0,
                             PrintFileCodeWithAll = false
-                        });
-                });
-
-            modelBuilder.Entity("NewLab.Models.Domain.CalculationConstant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ConstantName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<decimal>("ConstantValue")
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<string>("TestType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TestType", "ConstantName")
-                        .IsUnique();
-
-                    b.ToTable("CalculationConstants");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            ConstantName = "AgeUnder1",
-                            ConstantValue = 8.25m,
-                            TestType = "Hgb",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 2,
-                            ConstantName = "Age1To12",
-                            ConstantValue = 7.50m,
-                            TestType = "Hgb",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 3,
-                            ConstantName = "MaleOver12",
-                            ConstantValue = 6.25m,
-                            TestType = "Hgb",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 4,
-                            ConstantName = "FemaleOver12",
-                            ConstantValue = 6.75m,
-                            TestType = "Hgb",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 5,
-                            ConstantName = "HctMultiplier",
-                            ConstantValue = 3.3m,
-                            TestType = "CBC",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 6,
-                            ConstantName = "ISI",
-                            ConstantValue = 1.0m,
-                            TestType = "PT",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 7,
-                            ConstantName = "ControlTime",
-                            ConstantValue = 12.0m,
-                            TestType = "PT",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            Id = 8,
-                            ConstantName = "ControlTime",
-                            ConstantValue = 30.0m,
-                            TestType = "PTT",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -855,34 +760,6 @@ namespace NewLab.Migrations
                         });
                 });
 
-            modelBuilder.Entity("NewLab.Models.Domain.SavedComment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CommentText")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("LabTestId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LabTestId", "Type");
-
-                    b.ToTable("SavedComments");
-                });
-
             modelBuilder.Entity("NewLab.Models.Domain.SpecimenType", b =>
                 {
                     b.Property<int>("Id")
@@ -946,58 +823,6 @@ namespace NewLab.Migrations
                             LogGroup = "URI",
                             Name = "Urine"
                         });
-                });
-
-            modelBuilder.Entity("NewLab.Models.Domain.TestResult", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("EnteredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FlagText")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsAbnormal")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsCritical")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("LabTestElementId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PatientTestId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Value")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LabTestElementId");
-
-                    b.HasIndex("PatientTestId", "LabTestElementId")
-                        .IsUnique();
-
-                    b.ToTable("TestResults");
                 });
 
             modelBuilder.Entity("NewLab.Models.Domain.User", b =>
@@ -1179,7 +1004,7 @@ namespace NewLab.Migrations
                         .IsRequired();
 
                     b.HasOne("NewLab.Models.Domain.PatientVisit", "Visit")
-                        .WithMany("PatientTests")
+                        .WithMany()
                         .HasForeignKey("PatientVisitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1235,36 +1060,6 @@ namespace NewLab.Migrations
                     b.Navigation("Referral");
                 });
 
-            modelBuilder.Entity("NewLab.Models.Domain.SavedComment", b =>
-                {
-                    b.HasOne("NewLab.Models.Domain.LabTest", "LabTest")
-                        .WithMany()
-                        .HasForeignKey("LabTestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("LabTest");
-                });
-
-            modelBuilder.Entity("NewLab.Models.Domain.TestResult", b =>
-                {
-                    b.HasOne("NewLab.Models.Domain.LabTestElement", "Element")
-                        .WithMany()
-                        .HasForeignKey("LabTestElementId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("NewLab.Models.Domain.PatientTest", "PatientTest")
-                        .WithMany()
-                        .HasForeignKey("PatientTestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Element");
-
-                    b.Navigation("PatientTest");
-                });
-
             modelBuilder.Entity("NewLab.Models.Domain.UserRole", b =>
                 {
                     b.HasOne("NewLab.Models.Domain.Role", "Role")
@@ -1294,11 +1089,6 @@ namespace NewLab.Migrations
             modelBuilder.Entity("NewLab.Models.Domain.Patient", b =>
                 {
                     b.Navigation("Visits");
-                });
-
-            modelBuilder.Entity("NewLab.Models.Domain.PatientVisit", b =>
-                {
-                    b.Navigation("PatientTests");
                 });
 
             modelBuilder.Entity("NewLab.Models.Domain.Role", b =>

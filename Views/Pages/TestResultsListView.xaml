@@ -1,0 +1,195 @@
+<UserControl x:Class="NewLab.Views.Pages.TestResultsListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:NewLab.Converters"
+             FlowDirection="RightToLeft">
+    <UserControl.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+        <KeyBinding Key="F8" Command="{Binding ToggleReviewedCommand}" />
+        <KeyBinding Key="F9" Command="{Binding ToggleEnteredCommand}" />
+        <KeyBinding Key="F12" Command="{Binding TogglePrintedCommand}" />
+        <KeyBinding Key="Enter" Command="{Binding OpenTestEntryCommand}" />
+    </UserControl.InputBindings>
+    <UserControl.Resources>
+        <converters:TestStatusToIconConverter x:Key="TestStatusToIconConverter"/>
+        <converters:TestStatusToColorConverter x:Key="TestStatusToColorConverter"/>
+    </UserControl.Resources>
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Column 1: Patient list + search + filters -->
+        <Border Grid.Column="0" Margin="0,0,8,0" Padding="8" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1" CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Search by code -->
+                <TextBox Grid.Row="0" Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         materialDesign:HintAssist.Hint="بحث بالكود"
+                         Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,0,0,8"/>
+                <Button Grid.Row="0" Content="بحث" Command="{Binding SearchCommand}"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="8,0,0,8" Padding="12,4"/>
+
+                <!-- Search by attendance number -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             materialDesign:HintAssist.Hint="رقم الحضور"
+                             Width="120" Margin="0,0,8,0"
+                             Text="{Binding SearchAttendanceNumber, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="بحث" Command="{Binding SearchCommand}" Padding="12,4"/>
+                </StackPanel>
+
+                <!-- Date navigation -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="&lt;" Command="{Binding PreviousDayCommand}" Padding="8,4" Margin="0,0,4,0"/>
+                    <TextBlock Text="{Binding SelectedDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                               VerticalAlignment="Center" FontWeight="Bold" Margin="8,0"/>
+                    <Button Content="&gt;" Command="{Binding NextDayCommand}" Padding="8,4" Margin="4,0,0,0"/>
+                </StackPanel>
+
+                <!-- Filter ComboBox -->
+                <ComboBox Grid.Row="3" Margin="0,0,0,8"
+                          SelectedItem="{Binding FilterMode}"
+                          materialDesign:HintAssist.Hint="الفلتر">
+                    <ComboBoxItem Content="الكل" IsSelected="True"/>
+                    <ComboBoxItem Content="غير مكتوب"/>
+                    <ComboBoxItem Content="غير مراجع"/>
+                    <ComboBoxItem Content="غير مطبوع"/>
+                    <ComboBoxItem Content="مهم"/>
+                    <ComboBoxItem Content="فردي"/>
+                    <ComboBoxItem Content="معمل مع معمل"/>
+                    <ComboBoxItem Content="تحويلة"/>
+                </ComboBox>
+
+                <!-- Patient list -->
+                <ListBox Grid.Row="4"
+                         ItemsSource="{Binding Patients}"
+                         SelectedItem="{Binding SelectedPatient}"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="4">
+                                <materialDesign:PackIcon Kind="{Binding AggregateStatus, Converter={StaticResource TestStatusToIconConverter}}"
+                                                        Foreground="{Binding AggregateStatus, Converter={StaticResource TestStatusToColorConverter}}"
+                                                        Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding FullName}"
+                                           VerticalAlignment="Center"
+                                           FontWeight="{Binding IsImportant, Converter={x:Static converters:InverseBoolToVisibilityConverter.Instance}}"/>
+                                <TextBlock Text="{Binding AttendanceNumber, StringFormat='[{0}]'}"
+                                           Foreground="Gray" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Column 2: Selected patient details + tests -->
+        <Border Grid.Column="1" Margin="4,0,4,0" Padding="8" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1" CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Patient info -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock Text="{Binding SelectedPatient.FullName, FallbackValue='اختر مريضاً'}"
+                               FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="رقم الحضور: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.AttendanceNumber}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="عدد التحاليل: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.VisitCount}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Tests list -->
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding PatientTests}"
+                         SelectedItem="{Binding SelectedTest}"
+                         VirtualizingPanel.IsVirtualizing="True">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="4">
+                                <materialDesign:PackIcon Kind="{Binding Status, Converter={StaticResource TestStatusToIconConverter}}"
+                                                        Foreground="{Binding Status, Converter={StaticResource TestStatusToColorConverter}}"
+                                                        Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding LabTest.TestName}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding LabTest.Code, StringFormat='({0})'}"
+                                           Foreground="Gray" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Column 3: Commands -->
+        <Border Grid.Column="2" Margin="8,0,0,0" Padding="8" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1" CornerRadius="4">
+            <StackPanel>
+                <!-- Status toggle buttons -->
+                <TextBlock Text="إجراءات الحالة" FontWeight="Bold" Margin="0,0,0,8"/>
+                <Button Content="F8 - مراجعة" Command="{Binding ToggleReviewedCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="F9 - إدخال" Command="{Binding ToggleEnteredCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="F12 - طباعة" Command="{Binding TogglePrintedCommand}"
+                        Margin="0,0,0,12" Padding="8,6"/>
+
+                <!-- Notes -->
+                <TextBlock Text="ملاحظات" FontWeight="Bold" Margin="0,0,0,4"/>
+                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         materialDesign:HintAssist.Hint="ملاحظات المريض"
+                         Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" TextWrapping="Wrap" Height="60"
+                         Margin="0,0,0,4"/>
+                <Button Content="حفظ الملاحظات" Command="{Binding UpdateNoteCommand}"
+                        Margin="0,0,0,12" Padding="8,6"/>
+
+                <!-- Report buttons -->
+                <TextBlock Text="التقارير" FontWeight="Bold" Margin="0,0,0,4"/>
+                <Button Content="تقرير مجمع" Command="{Binding PrintAggregateReportCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="ورقة عمل" Command="{Binding PrintWorksheetCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="ظرف" Command="{Binding PrintEnvelopeCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="تاريخ مرضي" Command="{Binding PrintHistoryCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="تقرير فارغ" Command="{Binding PrintBlankReportCommand}"
+                        Margin="0,0,0,12" Padding="8,6"/>
+
+                <!-- Admin buttons -->
+                <TextBlock Text="إدارة" FontWeight="Bold" Margin="0,0,0,4" Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <Button Content="ب - سجل التدقيق" Command="{Binding ShowAuditCommand}"
+                        IsEnabled="{Binding IsAdmin}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+                <Button Content="ت - تتبع مالي" Command="{Binding ShowFinancialTrackingCommand}"
+                        IsEnabled="{Binding IsAdmin}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+
+                <!-- Delivery + Search -->
+                <Button Content="تسليم" Command="{Binding OpenDeliveryCommand}"
+                        Margin="0,8,0,4" Padding="8,6"/>
+                <Button Content="بحث (F6)" Command="{Binding OpenSearchCommand}"
+                        Margin="0,0,0,4" Padding="8,6"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

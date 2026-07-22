@@ -10,6 +10,7 @@ using NewLab.Models.Validation;
 using NewLab.Services.Implementations;
 using NewLab.Services.Interfaces;
 using NewLab.ViewModels.Pages;
+using NewLab.Views.Pages;
 using NewLab.Views.Windows;
 
 namespace NewLab
@@ -36,11 +37,16 @@ namespace NewLab
                     services.AddScoped<INormalRangeService, NormalRangeService>();
                     services.AddScoped<IBarcodeService, BarcodeService>();
                     services.AddScoped<IBarcodePrintService, BarcodePrintService>();
+                    services.AddScoped<ITestResultsListService, TestResultsListService>();
+                    services.AddScoped<ITestResultEntryService, TestResultEntryService>();
+                    services.AddScoped<IAutoCalculationService, AutoCalculationService>();
+                    services.AddScoped<IReportPdfGenerator, ReportPdfGenerator>();
 
                     // 2.1 Register Validators
                     services.AddScoped<IValidator<Patient>, PatientValidator>();
                     services.AddScoped<IValidator<LabTest>, LabTestValidator>();
                     services.AddScoped<IValidator<NormalRange>, NormalRangeValidator>();
+                    services.AddScoped<IValidator<TestResult>, TestResultValidator>();
                     
                     // 3. Register existing services (from previous phases)
                     services.AddSingleton<ICurrentUserService, CurrentUserService>();
@@ -55,6 +61,9 @@ namespace NewLab
                     services.AddTransient<LabTestManagementViewModel>();
                     services.AddTransient<NormalRangeViewModel>();
                     services.AddTransient<BarcodeViewModel>();
+                    services.AddTransient<TestResultsListViewModel>();
+                    services.AddTransient<TestResultEntryViewModel>();
+                    services.AddTransient<CalculationConstantsViewModel>();
                 })
                 .Build();
         }

@@ -831,6 +831,155 @@ No files were deleted in Function 2.
 
 ---
 
+### ✅ Phase 9: Function 3 — Test Results List
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 10 parts of Function 3 (Test Results List — قائمة نتائج التحاليل) per `Docs/Handoff_Slice_3&4.md`, including retro-integration with Function 1 (PatientEntryViewModel.TodayPatients → TestResultsListView).
+
+---
+
+#### Function 3 Execution: 10/10 Parts Completed
+
+All 10 parts executed sequentially with build verification after each.
+
+##### Files Created (10 files)
+
+```
+Models/Domain/PatientTest.cs                      # Part 3.1 — FK PatientVisitId+LabTestId, Status, IsReviewed/IsPrinted/IsDelivered, Price decimal(18,2)
+Models/Domain/AuditLog.cs                         # Part 3.2 — EntityName, EntityId, Action, UserId, Timestamp, Details
+Services/Interfaces/ITestResultsListService.cs    # Part 3.4 — PatientListItem record + 12 methods
+Services/Implementations/TestResultsListService.cs # Part 3.5 — Full implementation with audit logging
+Converters/TestStatusToIconConverter.cs           # Part 3.6 — TestStatus→PackIconKind + color converter
+ViewModels/Pages/TestResultsListViewModel.cs      # Part 3.7 — 10 properties, 15 commands, Admin gates on Audit/Financial
+Views/Pages/TestResultsListView.xaml              # Part 3.8 — 3-column RTL layout
+Views/Pages/TestResultsListView.xaml.cs           # Part 3.8 — Minimal code-behind
+```
+
+Plus 2 auto-generated migration files:
+```
+Migrations/<timestamp>_AddPatientTestsAndAuditLogs.cs           # Part 3.3
+Migrations/<timestamp>_AddPatientTestsAndAuditLogs.Designer.cs  # Part 3.3
+```
+
+##### Files Modified (7 files)
+
+```
+Data/NewLabDbContext.cs                  # +DbSet<PatientTest>, +DbSet<AuditLog> + Fluent API (FK, indexes, decimal precision)
+Models/Domain/PatientVisit.cs            # +ICollection<PatientTest> PatientTests navigation property
+App.xaml.cs                              # +Scoped ITestResultsListService, +Transient TestResultsListViewModel
+App.xaml                                 # +DataTemplate TestResultsListViewModel → TestResultsListView
+ViewModels/Pages/MainDashboardViewModel.cs # +TargetViewType=typeof(TestResultsListView), +OpenTestResultsListCommand, +F4 branch in OpenFunction
+Views/Windows/MainWindow.xaml            # +KeyBinding F4 → OpenTestResultsListCommand
+ViewModels/Pages/PatientEntryViewModel.cs # TodayPatients(): placeholder → _navigationService.NavigateTo<TestResultsListViewModel>()
+```
+
+##### Retro-Integration with Function 1
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| `TodayPatients()` body | `ViewModels/Pages/PatientEntryViewModel.cs` | Placeholder message replaced with `_navigationService.NavigateTo<TestResultsListViewModel>()` |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 6** | `SearchByAttendanceNumberAsync` = `PatientVisit.DailySequenceNumber == number` for the requested date — simple daily serial, no composite encoding |
+| **Decision 7** | `ShowAuditCommand.CanExecute = IsAdmin`, `ShowFinancialTrackingCommand.CanExecute = IsAdmin` — Admin-only buttons in F3 |
+| **CP-F3-1** | No new `PatientTestStatus` enum — reused existing `Enums/TestStatus.cs` (7 values) |
+| **CP-F3-2** | `PrintReceipt()` placeholder left unchanged in PatientEntryViewModel |
+| **CP-F3-3** | `TodayPatients()` in PatientEntryViewModel now opens TestResultsListView |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
+### ✅ Phase 10: Function 4 — Test Result Entry
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 11 parts of Function 4 (Test Result Entry — إدخال نتائج التحاليل) per `Docs/Handoff_Slice_3&4.md`, including retro-integration with Function 3 (TestResultsListViewModel.OpenTestEntry → TestResultEntryView).
+
+---
+
+#### Function 4 Execution: 11/11 Parts Completed
+
+All 11 parts executed sequentially with build verification after each.
+
+##### Files Created (12 files)
+
+```
+Models/Domain/TestResult.cs                        # Part 4.1 — FK PatientTestId+LabTestElementId, Value, Unit, IsAbnormal/IsCritical, FlagText
+Models/Domain/SavedComment.cs                      # Part 4.1 — FK LabTestId, CommentText, Type (Low/High/Critical/General)
+Models/Domain/CalculationConstant.cs               # Part 4.5 — TestType, ConstantName, ConstantValue decimal(18,6)
+Models/Validation/TestResultValidator.cs           # Part 4.6 — FluentValidation: PatientTestId, LabTestElementId, Value, Comment
+Services/Interfaces/ITestResultEntryService.cs     # Part 4.4 — GetPatientTestWithProfile, SaveResults, EvaluateResult, MarkReviewed, Preview/PrintReport
+Services/Interfaces/IAutoCalculationService.cs     # Part 4.5 — CalculateHct, CalculateHgbPercent, CalculateINR, CalculatePTTRatio, Get/UpdateConstants
+Services/Interfaces/IReportPdfGenerator.cs         # Part 4.7 — GenerateAsync(int patientTestId) → byte[]
+Services/Implementations/AutoCalculationService.cs # Part 4.5 — Reads CalculationConstants from DB, applies formulas
+Services/Implementations/TestResultEntryService.cs # Part 4.6 — Transaction-based save, delegates to INormalRangeService for evaluation
+Services/Implementations/ReportPdfGenerator.cs     # Part 4.7 — QuestPDF Community license, RTL report with patient data + results table
+ViewModels/Pages/TestResultEntryViewModel.cs       # Part 4.8 — LoadForPatientTest, Save/Print/Preview/Reviewed commands, TestResultRow class
+ViewModels/Pages/CalculationConstantsViewModel.cs  # Part 4.5 — LoadConstants, Save command
+Views/Windows/TestResultEntryView.xaml             # Part 4.9 — Window modal (ShowDialog), 3-row: patient info + DataGrid + commands
+Views/Windows/TestResultEntryView.xaml.cs          # Part 4.9 — Minimal code-behind
+Views/Windows/CalculationConstantsView.xaml        # Part 4.5 — Window modal, DataGrid for editing constants
+Views/Windows/CalculationConstantsView.xaml.cs     # Part 4.5 — Close_Click handler
+```
+
+Plus 2 auto-generated migration files:
+```
+Migrations/<timestamp>_AddTestResultsAndConstants.cs           # Part 4.3
+Migrations/<timestamp>_AddTestResultsAndConstants.Designer.cs  # Part 4.3
+```
+
+##### Files Modified (3 files)
+
+```
+Data/NewLabDbContext.cs                  # +DbSet<TestResult>, +DbSet<SavedComment>, +DbSet<CalculationConstant> + Fluent API + Seed 8 CalculationConstants
+App.xaml.cs                              # +Scoped ITestResultEntryService, IAutoCalculationService, IReportPdfGenerator, IValidator<TestResult> + Transient TestResultEntryViewModel, CalculationConstantsViewModel
+ViewModels/Pages/TestResultsListViewModel.cs # +Func<TestResultEntryViewModel> factory, OpenTestEntry → ShowDialog pattern
+```
+
+##### Retro-Integration with Function 3
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| Constructor added `Func<TestResultEntryViewModel>` | `ViewModels/Pages/TestResultsListViewModel.cs` | Factory pattern — same as Phase 7 NormalRangeViewModel pattern |
+| `OpenTestEntryCommand` body | `ViewModels/Pages/TestResultsListViewModel.cs` | Placeholder → factory + LoadForPatientTestAsync + ShowDialog + refresh |
+| DI registration | `App.xaml.cs` | `services.AddTransient<TestResultEntryViewModel>()` |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 8** | `IAutoCalculationService` — INR = (ptPatient/controlTime)^ISI, PTT Ratio = pttPatient/controlTime — constants from CalculationConstants table |
+| **Decision 9** | No custom history window — only basic "تاريخ مرضي" button (no `OpenCustomHistoryCommand`) |
+| **Decision 16** | `EvaluateResultAsync` delegates to `INormalRangeService.GetMatchingRangeAsync` + `EvaluateValueAsync` |
+| **CP-F4-1** | `LabTestElement` entity reused from F7 — no new entity created |
+| **CP-F4-2** | `TestResultEntryView` is a Window modal (ShowDialog) — no DataTemplate in App.xaml |
+| **CP-F4-3** | PatientTest requires PatientVisit — no standalone test entry |
+| **CP-F4-4** | CalculationConstants = global settings (single table, no FK to LabTest) |
+| **CP-F4-5** | SavedComment: created as entity + table, read-only for now (no CRUD UI) |
+| **CP-F4-6** | Constants editing available to all users (no Admin gate) |
+
+##### Database Seed (CalculationConstants)
+
+| Id | TestType | ConstantName | ConstantValue |
+|----|----------|-------------|---------------|
+| 1 | Hgb | AgeUnder1 | 8.25 |
+| 2 | Hgb | Age1To12 | 7.50 |
+| 3 | Hgb | MaleOver12 | 6.25 |
+| 4 | Hgb | FemaleOver12 | 6.75 |
+| 5 | CBC | HctMultiplier | 3.3 |
+| 6 | PT | ISI | 1.0 |
+| 7 | PT | ControlTime | 12.0 |
+| 8 | PTT | ControlTime | 30.0 |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
 ## 🎯 Next Steps
 **Status**: In Progress  
 
@@ -839,12 +988,12 @@ No files were deleted in Function 2.
 - ✅ Phase 6: Function 7 — Lab Test Definitions & Pricing — 11/11 parts
 - ✅ Phase 7: Function 8 — Normal Range Management — 10/10 parts
 - ✅ Phase 8: Function 2 — Barcode Printing & Patient Codes — 13/13 parts
+- ✅ Phase 9: Function 3 — Test Results List — 10/10 parts
+- ✅ Phase 10: Function 4 — Test Result Entry — 11/11 parts
 
 **Remaining Functions**:
-1. Function 3: Test orders & results entry (F3)
-2. Function 4: Today's patients (F4)
-3. Function 5: Result delivery (F5)
-4. Function 6: Lab-to-lab interface (F6)
+1. Function 5: Result delivery (F5)
+2. Function 6: Search for patient (F6)
 
 ---
 
@@ -897,7 +1046,12 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 - **NormalRanges Table**: Empty (ready for Normal Range data entry via F8 UI) — NEW (Phase 7)
 - **BarcodeSettings Table**: Seeded with 1 row (Id=1, OffsetX=0, OffsetY=0, PrintFileCodeWithAll=false, LabelWidth=38, LabelHeight=25) — NEW (Phase 8)
 - **PatientCodes Table**: Empty (ready for Patient Code records via F2) — NEW (Phase 8)
-- **__EFMigrationsHistory**: 5 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices + AddNormalRanges + AddBarcodeSettingsAndPatientCodes
+- **PatientTests Table**: Empty (ready for F3 test orders) — NEW (Phase 9)
+- **AuditLogs Table**: Empty (audit trail for all operations) — NEW (Phase 9)
+- **TestResults Table**: Empty (ready for F4 result entry) — NEW (Phase 10)
+- **SavedComments Table**: Empty (ready for saved comments) — NEW (Phase 10)
+- **CalculationConstants Table**: Seeded with 8 rows (Hgb×4, CBC×1, PT×2, PTT×1) — NEW (Phase 10)
+- **__EFMigrationsHistory**: 7 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices + AddNormalRanges + AddBarcodeSettingsAndPatientCodes + AddPatientTestsAndAuditLogs + AddTestResultsAndConstants
 
 ---
 
@@ -919,7 +1073,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 ---
 
 **Last Updated**: 2026-07-22  
-**Document Version**: 1.5
+**Document Version**: 1.6
 
 ---
 

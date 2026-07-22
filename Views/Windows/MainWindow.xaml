@@ -11,6 +11,7 @@
         FlowDirection="RightToLeft">
     <Window.InputBindings>
         <KeyBinding Key="F2" Command="{Binding OpenPatientEntryCommand}" />
+        <KeyBinding Key="F4" Command="{Binding OpenTestResultsListCommand}" />
     </Window.InputBindings>
     <Window.Resources>
         <DataTemplate DataType="{x:Type models:FunctionDefinition}">

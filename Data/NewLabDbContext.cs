@@ -24,6 +24,11 @@ namespace NewLab.Data
         public DbSet<NormalRange> NormalRanges { get; set; }
         public DbSet<BarcodeSettings> BarcodeSettings { get; set; }
         public DbSet<PatientCode> PatientCodes { get; set; }
+        public DbSet<PatientTest> PatientTests { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<TestResult> TestResults { get; set; }
+        public DbSet<SavedComment> SavedComments { get; set; }
+        public DbSet<CalculationConstant> CalculationConstants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -239,7 +244,89 @@ namespace NewLab.Data
                 new TestGroup { Id = 3, Name = "Urine", LogGroup = "URI" }
             );
 
-            // 17. Seed LabTests
+            // 17. PatientTest configurations
+            modelBuilder.Entity<PatientTest>()
+                .HasOne(pt => pt.Visit)
+                .WithMany(v => v.PatientTests)
+                .HasForeignKey(pt => pt.PatientVisitId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PatientTest>()
+                .HasOne(pt => pt.LabTest)
+                .WithMany()
+                .HasForeignKey(pt => pt.LabTestId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PatientTest>()
+                .HasIndex(pt => new { pt.PatientVisitId, pt.LabTestId })
+                .IsUnique();
+
+            modelBuilder.Entity<PatientTest>()
+                .Property(pt => pt.Price)
+                .HasColumnType("decimal(18,2)");
+
+            // 18. AuditLog configurations
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => new { a.EntityName, a.EntityId });
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Timestamp);
+
+            // 19. TestResult configurations
+            modelBuilder.Entity<TestResult>()
+                .HasOne(tr => tr.PatientTest)
+                .WithMany()
+                .HasForeignKey(tr => tr.PatientTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TestResult>()
+                .HasOne(tr => tr.Element)
+                .WithMany()
+                .HasForeignKey(tr => tr.LabTestElementId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TestResult>()
+                .HasIndex(tr => new { tr.PatientTestId, tr.LabTestElementId })
+                .IsUnique();
+
+            // 20. SavedComment configurations
+            modelBuilder.Entity<SavedComment>()
+                .HasOne(sc => sc.LabTest)
+                .WithMany()
+                .HasForeignKey(sc => sc.LabTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SavedComment>()
+                .HasIndex(sc => new { sc.LabTestId, sc.Type });
+
+            // 21. CalculationConstant configurations
+            modelBuilder.Entity<CalculationConstant>()
+                .HasIndex(cc => new { cc.TestType, cc.ConstantName })
+                .IsUnique();
+
+            modelBuilder.Entity<CalculationConstant>()
+                .Property(cc => cc.ConstantValue)
+                .HasColumnType("decimal(18,6)");
+
+            // Seed CalculationConstants
+            modelBuilder.Entity<CalculationConstant>().HasData(
+                new CalculationConstant { Id = 1, TestType = "Hgb", ConstantName = "AgeUnder1", ConstantValue = 8.25m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 2, TestType = "Hgb", ConstantName = "Age1To12", ConstantValue = 7.50m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 3, TestType = "Hgb", ConstantName = "MaleOver12", ConstantValue = 6.25m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 4, TestType = "Hgb", ConstantName = "FemaleOver12", ConstantValue = 6.75m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 5, TestType = "CBC", ConstantName = "HctMultiplier", ConstantValue = 3.3m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 6, TestType = "PT", ConstantName = "ISI", ConstantValue = 1.0m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 7, TestType = "PT", ConstantName = "ControlTime", ConstantValue = 12.0m, UpdatedAt = new DateTime(2026, 1, 1) },
+                new CalculationConstant { Id = 8, TestType = "PTT", ConstantName = "ControlTime", ConstantValue = 30.0m, UpdatedAt = new DateTime(2026, 1, 1) }
+            );
+
+            // 22. Seed LabTests
             modelBuilder.Entity<LabTest>().HasData(
                 new LabTest
                 {

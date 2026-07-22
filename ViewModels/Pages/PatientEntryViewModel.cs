@@ -277,7 +277,7 @@ namespace NewLab.ViewModels.Pages
         [RelayCommand]
         private void TodayPatients()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 4");
+            _navigationService.NavigateTo<TestResultsListViewModel>();
         }
 
         [RelayCommand]
