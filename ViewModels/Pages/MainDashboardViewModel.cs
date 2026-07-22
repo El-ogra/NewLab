@@ -66,6 +66,16 @@ namespace NewLab.ViewModels.Pages
                 _navigationService.NavigateTo<TestResultsListViewModel>();
                 CurrentFunctionView = _navigationService.CurrentViewModel;
             }
+            else if (function.TargetViewType == typeof(DeliveryView))
+            {
+                _navigationService.NavigateTo<DeliveryViewModel>();
+                CurrentFunctionView = _navigationService.CurrentViewModel;
+            }
+            else if (function.TargetViewType == typeof(SearchView))
+            {
+                _navigationService.NavigateTo<SearchViewModel>();
+                CurrentFunctionView = _navigationService.CurrentViewModel;
+            }
             else
             {
                 UpdateContent();
@@ -105,6 +115,24 @@ namespace NewLab.ViewModels.Pages
             IsDashboardMode = false;
         }
 
+        [RelayCommand]
+        private void OpenDelivery()
+        {
+            _navigationService.NavigateTo<DeliveryViewModel>();
+            CurrentFunctionView = _navigationService.CurrentViewModel;
+            IsToolbarVisible = false;
+            IsDashboardMode = false;
+        }
+
+        [RelayCommand]
+        private void OpenSearch()
+        {
+            _navigationService.NavigateTo<SearchViewModel>();
+            CurrentFunctionView = _navigationService.CurrentViewModel;
+            IsToolbarVisible = false;
+            IsDashboardMode = false;
+        }
+
         private void UpdateContent()
         {
             CurrentContent = this;
@@ -123,8 +151,8 @@ namespace NewLab.ViewModels.Pages
                     {
                         new FunctionDefinition { Name = "إدخال نتائج التحاليل", IconName = "Flask", TargetViewType = typeof(TestResultsListView) },
                         new FunctionDefinition { Name = "إضافة وتعديل بيانات المرضى", IconName = "AccountEdit", TargetViewType = typeof(PatientEntryView) },
-                        new FunctionDefinition { Name = "بحث عن مريض", IconName = "Magnify" },
-                        new FunctionDefinition { Name = "تسليم نتائج المرضى", IconName = "FileCheck" }
+                        new FunctionDefinition { Name = "بحث عن مريض", IconName = "Magnify", TargetViewType = typeof(SearchView) },
+                        new FunctionDefinition { Name = "تسليم نتائج المرضى", IconName = "FileCheck", TargetViewType = typeof(DeliveryView) }
                     }
                 },
                 new ToolbarItem

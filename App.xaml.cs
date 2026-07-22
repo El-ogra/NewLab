@@ -41,6 +41,8 @@ namespace NewLab
                     services.AddScoped<ITestResultEntryService, TestResultEntryService>();
                     services.AddScoped<IAutoCalculationService, AutoCalculationService>();
                     services.AddScoped<IReportPdfGenerator, ReportPdfGenerator>();
+                    services.AddScoped<IDeliveryService, DeliveryService>();
+                    services.AddScoped<IPatientSearchService, PatientSearchService>();
 
                     // 2.1 Register Validators
                     services.AddScoped<IValidator<Patient>, PatientValidator>();
@@ -64,6 +66,8 @@ namespace NewLab
                     services.AddTransient<TestResultsListViewModel>();
                     services.AddTransient<TestResultEntryViewModel>();
                     services.AddTransient<CalculationConstantsViewModel>();
+                    services.AddTransient<DeliveryViewModel>();
+                    services.AddTransient<SearchViewModel>();
                 })
                 .Build();
         }

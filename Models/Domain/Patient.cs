@@ -81,12 +81,18 @@ namespace NewLab.Models.Domain
 
         public bool IsSmoker { get; set; }
 
+        public DateTime? DeliveredAt { get; set; }
+
+        public int? DeliveredByUserId { get; set; }
+
         // Navigation properties
         public Referral? Referral { get; set; }
 
         public SpecimenType? ExternalSpecimenType { get; set; }
 
         public User CreatedByUser { get; set; } = null!;
+
+        public User? DeliveredByUser { get; set; }
 
         public ICollection<PatientVisit> Visits { get; set; } = new List<PatientVisit>();
     }

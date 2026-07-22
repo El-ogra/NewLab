@@ -60,13 +60,13 @@ namespace NewLab.ViewModels.Pages
         [RelayCommand]
         private void OpenPatientData()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 2");
+            _navigationService.NavigateTo<PatientEntryViewModel>();
         }
 
         [RelayCommand]
         private void OpenSearch()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 6");
+            _navigationService.NavigateTo<SearchViewModel>();
         }
 
         [RelayCommand]
@@ -91,7 +91,7 @@ namespace NewLab.ViewModels.Pages
         [RelayCommand]
         private void OpenDelivery()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 5");
+            _navigationService.NavigateTo<DeliveryViewModel>();
         }
 
         [RelayCommand]

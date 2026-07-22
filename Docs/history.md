@@ -61,7 +61,8 @@ NewLab/
 │   ├── NewLabDbContext.cs      # DbContext with DbSets for User, Role, UserRole, Patient, Referral, SpecimenType, PatientVisit, TestGroup, LabTest, LabTestElement, ReferralPrice, NormalRange, BarcodeSettings, PatientCode
 │   └── NewLabDbContextFactory.cs # Design-time factory for EF Core tooling
 ├── Helpers/                    # Extension methods, utility classes
-│   └── BarcodeImageGenerator.cs # ZXing.Net CODE_128 barcode generation helper (NEW Phase 8)
+│   ├── BarcodeImageGenerator.cs # ZXing.Net CODE_128 barcode generation helper (NEW Phase 8)
+│   └── BarcodeScannerListener.cs # Keyboard barcode scanner listener (NEW Phase 11)
 ├── Models/                     # Domain entities and DTOs
 │   ├── Domain/                 # Rich domain models
 │   │   ├── Enums/              # NEW (Phase 5)
@@ -69,11 +70,12 @@ NewLab/
 │   │   │   ├── BillingSystem.cs
 │   │   │   ├── AgeUnit.cs
 │   │   │   ├── TestStatus.cs
-│   │   │   └── CodeType.cs
+│   │   │   ├── CodeType.cs
+│   │   │   └── PaymentType.cs  # NEW (Phase 11) — Payment, Refund, Delivery
 │   │   ├── User.cs             # User entity (Id, Username, PasswordHash, FullName, etc.)
 │   │   ├── Role.cs             # Role entity (Id, Name, Description)
 │   │   ├── UserRole.cs         # Many-to-many join entity (UserId, RoleId)
-│   │   ├── Patient.cs          # NEW (Phase 5) — 8 Boolean medical fields
+│   │   ├── Patient.cs          # NEW (Phase 5), MODIFIED (Phase 11) — +DeliveredAt, +DeliveredByUserId
 │   │   ├── PatientVisit.cs     # NEW (Phase 5)
 │   │   ├── Referral.cs         # NEW (Phase 5)
 │   │   ├── SpecimenType.cs     # NEW (Phase 5)
@@ -84,11 +86,19 @@ NewLab/
 │   │   ├── NormalRange.cs      # NEW (Phase 7) — 20 fields, decimal(18,4) precision, Gender=Male/Female only
 │   │   ├── BarcodeSettings.cs  # NEW (Phase 8) — Id, OffsetX, OffsetY, PrintFileCodeWithAll, LabelWidth, LabelHeight
 │   │   ├── BarcodeLabel.cs     # NEW (Phase 8) — Transient (no DbSet), barcode label layout data
+│   │   ├── PatientCode.cs      # NEW (Phase 8) — Patient code records (LabCode, FileCode)
+│   │   ├── PatientTest.cs      # NEW (Phase 9) — FK PatientVisitId+LabTestId, Status, IsReviewed/IsPrinted/IsDelivered
+│   │   ├── AuditLog.cs         # NEW (Phase 9) — EntityName, EntityId, Action, UserId, Timestamp
+│   │   ├── TestResult.cs       # NEW (Phase 10) — FK PatientTestId+LabTestElementId, Value, Unit, IsAbnormal/IsCritical
+│   │   ├── SavedComment.cs     # NEW (Phase 10) — FK LabTestId, CommentText, Type
+│   │   ├── CalculationConstant.cs # NEW (Phase 10) — TestType, ConstantName, ConstantValue decimal(18,6)
+│   │   ├── PaymentTransaction.cs  # NEW (Phase 11) — PatientId, Amount, Type (PaymentType), UserId, Timestamp
 │   │   └── PatientCode.cs      # NEW (Phase 8) — Patient code records (LabCode, FileCode)
 │   ├── Validation/             # NEW (Phase 5)
 │   │   ├── PatientValidator.cs
 │   │   ├── LabTestValidator.cs # NEW (Phase 6)
-│   │   └── NormalRangeValidator.cs # NEW (Phase 7)
+│   │   ├── NormalRangeValidator.cs # NEW (Phase 7)
+│   │   └── TestResultValidator.cs  # NEW (Phase 10)
 │   └── DTOs/                   # Data transfer objects
 ├── Resources/                  # Shared XAML resources
 │   ├── Styles/                 # Control styles, themes
@@ -106,7 +116,13 @@ NewLab/
 │   │   ├── ILabTestService.cs             # NEW (Phase 6)
 │   │   ├── INormalRangeService.cs         # NEW (Phase 7) — CRUD + GetMatchingRangeAsync + EvaluateValueAsync
 │   │   ├── IBarcodeService.cs             # NEW (Phase 8) — Code generation + PatientCode records
-│   │   └── IBarcodePrintService.cs        # NEW (Phase 8) — PDF barcode generation
+│   │   ├── IBarcodePrintService.cs        # NEW (Phase 8) — PDF barcode generation
+│   │   ├── ITestResultsListService.cs     # NEW (Phase 9) — Patient list, search, status toggles
+│   │   ├── ITestResultEntryService.cs     # NEW (Phase 10) — Result entry, evaluation, review
+│   │   ├── IAutoCalculationService.cs     # NEW (Phase 10) — INR, PTT Ratio, Hct calculations
+│   │   ├── IReportPdfGenerator.cs         # NEW (Phase 10) — QuestPDF A4 report generation
+│   │   ├── IDeliveryService.cs            # NEW (Phase 11) — Delivery management, barcode search
+│   │   └── IPatientSearchService.cs       # NEW (Phase 12) — Patient search with filters
 │   ├── Implementations/        # Concrete implementations
 │   │   ├── NavigationService.cs
 │   │   ├── DialogService.cs
@@ -118,7 +134,13 @@ NewLab/
 │   │   ├── LabTestService.cs              # NEW (Phase 6)
 │   │   ├── NormalRangeService.cs          # NEW (Phase 7) — Decision 16 (narrowest range wins)
 │   │   ├── BarcodeService.cs              # NEW (Phase 8) — BranchConstant="1", BuildCode13
-│   │   └── BarcodePrintService.cs         # NEW (Phase 8) — QuestPDF, LabelWidth×LabelHeight mm
+│   │   ├── BarcodePrintService.cs         # NEW (Phase 8) — QuestPDF, LabelWidth×LabelHeight mm
+│   │   ├── TestResultsListService.cs      # NEW (Phase 9) — Patient list, search, audit logging
+│   │   ├── TestResultEntryService.cs      # NEW (Phase 10) — Transaction-based result save
+│   │   ├── AutoCalculationService.cs      # NEW (Phase 10) — INR, PTT Ratio, Hct calculations
+│   │   ├── ReportPdfGenerator.cs          # NEW (Phase 10) — QuestPDF Community, RTL report
+│   │   ├── DeliveryService.cs             # NEW (Phase 11) — Delivery, unmark, settle, barcode search
+│   │   └── PatientSearchService.cs        # NEW (Phase 12) — Composable IQueryable search
 │   └── Factories/              # ViewModel factories
 ├── ViewModels/                 # MVVM ViewModels
 │   ├── Base/                   # ViewModelBase, shared base classes
@@ -131,7 +153,12 @@ NewLab/
 │   │   ├── PatientEntryViewModel.cs   # NEW (Phase 5), MODIFIED (Phase 6) — ILabTestService injection, MODIFIED (Phase 8) — IBarcodeService + Func<BarcodeViewModel>
 │   │   ├── LabTestManagementViewModel.cs  # NEW (Phase 6), MODIFIED (Phase 7) — Func<NormalRangeViewModel>
 │   │   ├── NormalRangeViewModel.cs    # NEW (Phase 7) — 16 form fields, 7 commands, Decision 16 + 17
-│   │   └── BarcodeViewModel.cs        # NEW (Phase 8) — 10 properties, 7 commands, drag-and-drop support
+│   │   ├── BarcodeViewModel.cs        # NEW (Phase 8) — 10 properties, 7 commands, drag-and-drop support
+│   │   ├── TestResultsListViewModel.cs # NEW (Phase 9) — Patient list, filter modes, status toggles
+│   │   ├── TestResultEntryViewModel.cs # NEW (Phase 10) — Result entry, save, preview, print
+│   │   ├── CalculationConstantsViewModel.cs # NEW (Phase 10) — Constants editor
+│   │   ├── DeliveryViewModel.cs       # NEW (Phase 11) — Delivery management, barcode scan
+│   │   └── SearchViewModel.cs         # NEW (Phase 12) — Patient search with filters
 │   ├── Dialogs/                # Dialog ViewModels
 │   └── Components/             # Reusable component ViewModels
 ├── Views/                      # WPF Views
@@ -139,7 +166,13 @@ NewLab/
 │   │   ├── PatientEntryView.xaml      # NEW (Phase 5), MODIFIED (Phase 6) — ListBox bindings, MODIFIED (Phase 8) — F11 InputBinding
 │   │   ├── PatientEntryView.xaml.cs
 │   │   ├── LabTestManagementView.xaml # NEW (Phase 6)
-│   │   └── LabTestManagementView.xaml.cs # NEW (Phase 6)
+│   │   ├── LabTestManagementView.xaml.cs # NEW (Phase 6)
+│   │   ├── TestResultsListView.xaml   # NEW (Phase 9) — 3-column RTL layout
+│   │   ├── TestResultsListView.xaml.cs # NEW (Phase 9)
+│   │   ├── DeliveryView.xaml          # NEW (Phase 11) — 3-column RTL, patient list + tests + delivery commands
+│   │   ├── DeliveryView.xaml.cs       # NEW (Phase 11) — BarcodeScannerListener integration
+│   │   ├── SearchView.xaml            # NEW (Phase 12) — Search filters + DataGrid results + patient tests
+│   │   └── SearchView.xaml.cs         # NEW (Phase 12)
 │   ├── Dialogs/                # Modal dialogs
 │   ├── Controls/               # Reusable UserControls
 │   │   ├── DashboardContentControl.xaml/.cs
@@ -149,9 +182,11 @@ NewLab/
 │   └── Windows/                # Shell windows
 │       ├── SetupView.xaml/.cs  # First-time setup wizard
 │       ├── LoginView.xaml/.cs  # Login screen (green/yellow theme)
-│       ├── MainWindow.xaml/.cs # Main application shell
+│       ├── MainWindow.xaml/.cs # Main application shell — MODIFIED (Phase 11/12): +F3, +F6 KeyBindings
 │       ├── NormalRangeView.xaml/.cs    # NEW (Phase 7) — 3-column RTL, Ranges list + Form + Commands
-│       └── BarcodeView.xaml/.cs        # NEW (Phase 8) — 4-row RTL, Labels + Drag&Drop + Offset + Extra
+│       ├── BarcodeView.xaml/.cs        # NEW (Phase 8) — 4-row RTL, Labels + Drag&Drop + Offset + Extra
+│       ├── TestResultEntryView.xaml/.cs # NEW (Phase 10) — Modal result entry dialog
+│       └── CalculationConstantsView.xaml/.cs # NEW (Phase 10) — Constants editor dialog
 ├── Docs/                       # Project documentation
 │   └── history.md              # This file
 ├── Migrations/                 # EF Core migrations
@@ -159,7 +194,10 @@ NewLab/
 │   ├── 20260722032039_AddPatientsAndReferrals.cs  # NEW (Phase 5)
 │   ├── 20260722063244_AddLabTestsAndReferralPrices.cs  # NEW (Phase 6)
 │   ├── 20260722104729_AddNormalRanges.cs           # NEW (Phase 7)
-│   └── 20260722110834_AddBarcodeSettingsAndPatientCodes.cs  # NEW (Phase 8)
+│   ├── 20260722110834_AddBarcodeSettingsAndPatientCodes.cs  # NEW (Phase 8)
+│   ├── 20260722151445_AddPatientTestsAndAuditLogs.cs        # NEW (Phase 9)
+│   ├── 20260722152915_AddTestResultsAndConstants.cs         # NEW (Phase 10)
+│   └── 20260722170243_AddPaymentTransactionsAndDeliveredAt.cs # NEW (Phase 11)
 ├── App.xaml                    # Application resources, MaterialDesign theme, DataTemplates
 ├── App.xaml.cs                 # Application entry point, DI setup, startup routing
 └── appsettings.json            # Application configuration
@@ -980,8 +1018,152 @@ ViewModels/Pages/TestResultsListViewModel.cs # +Func<TestResultEntryViewModel> f
 
 ---
 
+### ✅ Phase 11: Function 5 — تسليم نتائج المرضى (Delivery)
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 10 parts of Function 5 (Result Delivery — تسليم نتائج التحاليل) per `Docs/Handoff_Slice_5&6.md`, including retro-integration with Function 3 (TestResultsListViewModel.OpenDelivery) and Function 4 (TestResultsListViewModel.OpenPatientData).
+
+---
+
+#### Function 5 Execution: 10/10 Parts Completed
+
+All 10 parts executed sequentially with build verification after each.
+
+##### Files Created (11 files)
+
+```
+Models/Domain/Enums/PaymentType.cs                  # Part 5.1 — Payment, Refund, Delivery
+Models/Domain/PaymentTransaction.cs                 # Part 5.1 — PatientId, Amount, Type, UserId, Timestamp, Note
+Services/Interfaces/IDeliveryService.cs             # Part 5.4 — DeliveryPatientRow/TestRow/Filter records + 8 methods
+Services/Implementations/DeliveryService.cs         # Part 5.5 — Full impl: deliver, unmark, settle, barcode search
+Helpers/BarcodeScannerListener.cs                   # Part 5.8 — Keyboard barcode scanner listener (50ms threshold)
+ViewModels/Pages/DeliveryViewModel.cs               # Part 5.6 — 10 properties, 7 commands, Admin gates
+Views/Pages/DeliveryView.xaml                       # Part 5.7 — 3-column RTL layout
+Views/Pages/DeliveryView.xaml.cs                    # Part 5.7 — BarcodeScannerListener integration
+Migrations/20260722170243_AddPaymentTransactionsAndDeliveredAt.cs           # Part 5.3
+Migrations/20260722170243_AddPaymentTransactionsAndDeliveredAt.Designer.cs  # Part 5.3
+```
+
+Plus 1 validation file (optional):
+```
+Models/Validation/PaymentTransactionValidator.cs    # Optional — lightweight validation
+```
+
+##### Files Modified (7 files)
+
+```
+Models/Domain/Patient.cs                            # Part 5.2 — +DeliveredAt, +DeliveredByUserId, +Nav DeliveredByUser
+Data/NewLabDbContext.cs                             # Part 5.3 — +DbSet<PaymentTransaction> + Fluent API (4 configs) + FK DeliveredByUser
+App.xaml                                            # Part 5.7 — +DataTemplate DeliveryViewModel → DeliveryView
+App.xaml.cs                                         # Part 5.5 — +Scoped IDeliveryService, +Transient DeliveryViewModel
+ViewModels/Pages/TestResultsListViewModel.cs         # Part 5.9 — OpenDelivery: placeholder → NavigateTo<DeliveryViewModel>, OpenPatientData: placeholder → NavigateTo<PatientEntryViewModel>
+ViewModels/Pages/MainDashboardViewModel.cs          # Part 5.9 — +TargetViewType=typeof(DeliveryView), +OpenDeliveryCommand, +OpenFunction branch
+Views/Windows/MainWindow.xaml                       # Part 5.9 — +KeyBinding F6 → OpenDeliveryCommand
+```
+
+##### Retro-Integration with Function 3 & 4
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| `OpenDelivery` body | `ViewModels/Pages/TestResultsListViewModel.cs` | Placeholder `_dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 5")` replaced with `_navigationService.NavigateTo<DeliveryViewModel>()` |
+| `OpenPatientData` body | `ViewModels/Pages/TestResultsListViewModel.cs` | Placeholder `_dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 2")` replaced with `_navigationService.NavigateTo<PatientEntryViewModel>()` (CP-F5-3 cleanup) |
+| `FunctionDefinition` "تسليم نتائج المرضى" | `ViewModels/Pages/MainDashboardViewModel.cs` | Added `TargetViewType = typeof(DeliveryView)` |
+| `OpenFunction` branch | `ViewModels/Pages/MainDashboardViewModel.cs` | Added `else if (function.TargetViewType == typeof(DeliveryView))` branch |
+| `OpenDeliveryCommand` | `ViewModels/Pages/MainDashboardViewModel.cs` | New command: `NavigateTo<DeliveryViewModel>()` + set `CurrentFunctionView` |
+| `KeyBinding F6` | `Views/Windows/MainWindow.xaml` | Added `<KeyBinding Key="F6" Command="{Binding OpenDeliveryCommand}" />` |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 10** | `DeliveryService.SearchByCodeAsync` auto-detects code type by 2nd digit: '1'=Case (VisitCode), '3'=File (FileCode), '5'=Lab (LabId), fallback searches all three |
+| **Decision 11** | `DeliveryService.UnmarkDeliveredAsync` checks `_currentUserService.IsAdmin` before proceeding; throws `UnauthorizedAccessException` if not Admin; `UnmarkDeliveredCommand.CanExecute` bound to `IsAdmin && AggregateStatus >= Delivered` |
+| **CP-F5-1** | No auto-print on delivery — "تسليم يدوي" button only records the event via `PaymentTransaction { Type = Delivery }` and `AuditLog { Action = "Deliver" }` |
+| **CP-F5-2** | `PaymentType.Delivery` added to `Enums/PaymentType.cs` alongside Payment and Refund |
+| **CP-F5-3** | `OpenPatientData` in TestResultsListViewModel redirected to `NavigateTo<PatientEntryViewModel>()` as final cleanup |
+| **CP-F5-4** | `DeliveryFilter` supports `DateFrom`/`DateTo` — defaults to today only; UI has 2 DatePickers |
+
+##### Database Migration: AddPaymentTransactionsAndDeliveredAt
+
+###### Migration Creation
+- ✅ EF Core migration created via `dotnet ef migrations add AddPaymentTransactionsAndDeliveredAt`
+- ✅ Tables created: `PaymentTransactions` (Id, PatientId, Amount, Type, UserId, Timestamp, Note)
+- ✅ Columns added: `Patients.DeliveredAt` (datetime2 nullable), `Patients.DeliveredByUserId` (int nullable)
+- ✅ Indexes: `IX_PaymentTransactions_PatientId_Timestamp`, `IX_PaymentTransactions_UserId`, `IX_Patients_DeliveredByUserId`
+- ✅ FKs: `FK_PaymentTransactions_Patients_PatientId` (Cascade), `FK_PaymentTransactions_Users_UserId` (Restrict), `FK_Patients_Users_DeliveredByUserId` (Restrict)
+
+###### Migration Application
+- ✅ Migration applied via `dotnet ef database update`
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
+### ✅ Phase 12: Function 6 — البحث عن مريض (Patient Search)
+**Status**: Completed  
+**Date**: 2026-07-22
+
+**Goal**: Execute all 6 parts of Function 6 (Patient Search — البحث عن مريض) per `Docs/Handoff_Slice_5&6.md`, including retro-integration with Function 3 (TestResultsListViewModel.OpenSearch) and global F3 shortcut.
+
+---
+
+#### Function 6 Execution: 6/6 Parts Completed
+
+All 6 parts executed sequentially with build verification after each.
+
+##### Files Created (5 files)
+
+```
+Services/Interfaces/IPatientSearchService.cs        # Part 6.1 — SearchCriteria/PatientSearchRow/PatientTestsSummary records + SearchSource enum + 5 methods
+Services/Implementations/PatientSearchService.cs    # Part 6.2 — Composable IQueryable search, Admin-check on DeleteAsync
+ViewModels/Pages/SearchViewModel.cs                 # Part 6.3 — 16 properties, 7 commands, referral suggestions, backup stub
+Views/Pages/SearchView.xaml                         # Part 6.4 — 4-row RTL layout: search filters + DataGrid + tests + commands
+Views/Pages/SearchView.xaml.cs                      # Part 6.4 — Minimal code-behind
+```
+
+##### Files Modified (5 files)
+
+```
+App.xaml                                            # Part 6.4 — +DataTemplate SearchViewModel → SearchView
+App.xaml.cs                                         # Part 6.2 — +Scoped IPatientSearchService, +Transient SearchViewModel
+ViewModels/Pages/TestResultsListViewModel.cs         # Part 5.9 — OpenSearch: placeholder → NavigateTo<SearchViewModel>
+ViewModels/Pages/MainDashboardViewModel.cs          # Part 5.9 — +TargetViewType=typeof(SearchView), +OpenSearchCommand, +OpenFunction branch
+Views/Windows/MainWindow.xaml                       # Part 5.9 — +KeyBinding F3 → OpenSearchCommand
+```
+
+##### Retro-Integration with Function 3
+
+| Change | File | What Changed |
+|--------|------|-------------|
+| `OpenSearch` body | `ViewModels/Pages/TestResultsListViewModel.cs` | Placeholder `_dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 6")` replaced with `_navigationService.NavigateTo<SearchViewModel>()` |
+| `FunctionDefinition` "بحث عن مريض" | `ViewModels/Pages/MainDashboardViewModel.cs` | Added `TargetViewType = typeof(SearchView)` |
+| `OpenFunction` branch | `ViewModels/Pages/MainDashboardViewModel.cs` | Added `else if (function.TargetViewType == typeof(SearchView))` branch |
+| `OpenSearchCommand` | `ViewModels/Pages/MainDashboardViewModel.cs` | New command: `NavigateTo<SearchViewModel>()` + set `CurrentFunctionView` |
+| `KeyBinding F3` | `Views/Windows/MainWindow.xaml` | Added `<KeyBinding Key="F3" Command="{Binding OpenSearchCommand}" />` |
+
+##### Decisions Applied
+
+| Decision | Implementation |
+|----------|---------------|
+| **Decision 12** | Backup search is a stub — `SearchSource.Backup` throws `NotImplementedException`; ComboBoxItem "النسخة الاحتياطية" has `IsEnabled="False"` in SearchView |
+| **Decision 13** | `PatientSearchService.DeletePatientAsync` checks `_currentUserService.IsAdmin` before proceeding; throws `UnauthorizedAccessException` if not Admin; `DeleteCommand.CanExecute` bound to `IsAdmin && SelectedResult != null` |
+
+##### Clarification Points Applied
+
+| CP | Decision | Implementation |
+|----|----------|---------------|
+| **CP-F6-1** | Case-insensitive Contains | SQL Server default collation `SQL_Latin1_General_CP1_CI_AS` is case-insensitive — no special handling needed |
+| **CP-F6-2** | Single composable query | `PatientSearchService.SearchAsync` builds a single `IQueryable` with conditional `.Where()` clauses |
+| **CP-F6-3** | All visits displayed | `_context.PatientTests.Include(pt => pt.Visit).Where(pt => pt.Visit.PatientId == pid)` — full patient history |
+| **CP-F6-4** | PrintGroupResults stub | `PrintGroupResultsCommand` shows "ستتوفر هذه الميزة قريباً" message — outside scope of 8 core functions |
+
+**Build Status**: 0 errors, 0 warnings (verified after each part)
+
+---
+
 ## 🎯 Next Steps
-**Status**: In Progress  
+**Status**: All 8 Core Functions Completed  
 
 **Completed**:
 - ✅ Phase 5: Function 1 — Patient Management (Add/Edit) — 15/15 parts
@@ -990,10 +1172,11 @@ ViewModels/Pages/TestResultsListViewModel.cs # +Func<TestResultEntryViewModel> f
 - ✅ Phase 8: Function 2 — Barcode Printing & Patient Codes — 13/13 parts
 - ✅ Phase 9: Function 3 — Test Results List — 10/10 parts
 - ✅ Phase 10: Function 4 — Test Result Entry — 11/11 parts
+- ✅ Phase 11: Function 5 — Result Delivery — 10/10 parts
+- ✅ Phase 12: Function 6 — Patient Search — 6/6 parts
 
-**Remaining Functions**:
-1. Function 5: Result delivery (F5)
-2. Function 6: Search for patient (F6)
+**All 8 Core Functions are now complete.**  
+**Remaining**: None — End of Stage 1 (المرحلة الأولى).
 
 ---
 
@@ -1031,14 +1214,14 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
                                                            └── Close MainWindow → LoginView
 ```
 
-### Database State (Post-Phase 8)
+### Database State (Post-Phase 12)
 - **Users Table**: Contains initial admin user (e.g., `ahmed` / Ahmed Magdy)
 - **Roles Table**: Seeded with Admin (Id=1), Technician (Id=2), Receptionist (Id=3)
 - **UserRoles Table**: Admin user linked to Admin role via composite key
 - **Referrals Table**: Seeded with default lab ("المعمل", IsDefaultLab=true)
 - **SpecimenTypes Table**: Empty (ready for data entry)
-- **Patients Table**: Empty (ready for Function 1 data entry)
-- **PatientVisits Table**: Empty (ready for Function 1 visits)
+- **Patients Table**: Contains DeliveredAt (datetime2 nullable), DeliveredByUserId (int nullable) — NEW (Phase 11)
+- **PatientVisits Table**: Empty (ready for Function 1 data entry)
 - **TestGroups Table**: Seeded with Chemistry, Hematology, Urine (Decision 5 — no Branch field)
 - **LabTests Table**: Seeded with Glucose, Hemoglobin, Urine Analysis
 - **LabTestElements Table**: Empty (ready for Function 4)
@@ -1051,7 +1234,8 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 - **TestResults Table**: Empty (ready for F4 result entry) — NEW (Phase 10)
 - **SavedComments Table**: Empty (ready for saved comments) — NEW (Phase 10)
 - **CalculationConstants Table**: Seeded with 8 rows (Hgb×4, CBC×1, PT×2, PTT×1) — NEW (Phase 10)
-- **__EFMigrationsHistory**: 7 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices + AddNormalRanges + AddBarcodeSettingsAndPatientCodes + AddPatientTestsAndAuditLogs + AddTestResultsAndConstants
+- **PaymentTransactions Table**: Empty (ready for F5 delivery/settlement records) — NEW (Phase 11)
+- **__EFMigrationsHistory**: 8 rows — InitialCreate + AddPatientsAndReferrals + AddLabTestsAndReferralPrices + AddNormalRanges + AddBarcodeSettingsAndPatientCodes + AddPatientTestsAndAuditLogs + AddTestResultsAndConstants + AddPaymentTransactionsAndDeliveredAt
 
 ---
 
@@ -1073,7 +1257,7 @@ App Start → Run EF Core Migration → Check IsFirstRunAsync()
 ---
 
 **Last Updated**: 2026-07-22  
-**Document Version**: 1.6
+**Document Version**: 1.7
 
 ---
 

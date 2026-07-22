@@ -27,6 +27,14 @@
                 <views:TestResultsListView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vmpages:DeliveryViewModel}">
+                <views:DeliveryView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vmpages:SearchViewModel}">
+                <views:SearchView />
+            </DataTemplate>
+
             <!-- Converters -->
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
 

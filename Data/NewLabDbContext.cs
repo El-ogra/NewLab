@@ -29,6 +29,7 @@ namespace NewLab.Data
         public DbSet<TestResult> TestResults { get; set; }
         public DbSet<SavedComment> SavedComments { get; set; }
         public DbSet<CalculationConstant> CalculationConstants { get; set; }
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -374,6 +375,33 @@ namespace NewLab.Data
                     ArrangeNumber = 3
                 }
             );
+
+            // 23. PaymentTransaction configurations
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasOne(pt => pt.Patient)
+                .WithMany()
+                .HasForeignKey(pt => pt.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasOne(pt => pt.User)
+                .WithMany()
+                .HasForeignKey(pt => pt.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasIndex(pt => new { pt.PatientId, pt.Timestamp });
+
+            modelBuilder.Entity<PaymentTransaction>()
+                .Property(pt => pt.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            // 24. Patient DeliveredByUser FK
+            modelBuilder.Entity<Patient>()
+                .HasOne(p => p.DeliveredByUser)
+                .WithMany()
+                .HasForeignKey(p => p.DeliveredByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
