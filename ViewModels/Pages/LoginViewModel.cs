@@ -11,6 +11,7 @@ namespace NewLab.ViewModels.Pages
     public partial class LoginViewModel : ObservableObject
     {
         private readonly IAuthService _authService;
+        private readonly ICurrentUserService _currentUserService;
 
         [ObservableProperty] private string username = string.Empty;
         [ObservableProperty] private string password = string.Empty;
@@ -21,9 +22,10 @@ namespace NewLab.ViewModels.Pages
 
         public Action? OnSuccess { get; set; }
 
-        public LoginViewModel(IAuthService authService)
+        public LoginViewModel(IAuthService authService, ICurrentUserService currentUserService)
         {
             _authService = authService;
+            _currentUserService = currentUserService;
         }
 
         [RelayCommand]
@@ -42,6 +44,7 @@ namespace NewLab.ViewModels.Pages
                 var user = await _authService.ValidateCredentialsAsync(Username, Password);
                 if (user != null)
                 {
+                    _currentUserService.SetCurrentUser(user);
                     OnSuccess?.Invoke();
                 }
                 else

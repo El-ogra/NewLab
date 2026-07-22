@@ -29,6 +29,7 @@ namespace NewLab
                     services.AddScoped<IAuthService, AuthService>();
                     
                     // 3. Register existing services (from previous phases)
+                    services.AddSingleton<ICurrentUserService, CurrentUserService>();
                     services.AddSingleton<INavigationService, NavigationService>();
                     services.AddSingleton<IDialogService, DialogService>();
 
