@@ -23,10 +23,10 @@ namespace NewLab.Services.Implementations
 
         public async Task<List<PatientListItem>> GetTodayPatientsAsync()
         {
-            return await GetPatientsByFilterAsync("All", DateTime.Today);
+            return await GetPatientsByFilterAsync(PatientListFilter.All, DateTime.Today);
         }
 
-        public async Task<List<PatientListItem>> GetPatientsByFilterAsync(string filterMode, DateTime? forDate)
+        public async Task<List<PatientListItem>> GetPatientsByFilterAsync(PatientListFilter filterMode, DateTime? forDate)
         {
             var d = forDate ?? DateTime.Today;
 
@@ -56,20 +56,27 @@ namespace NewLab.Services.Implementations
                     aggregateStatus,
                     tests.Count,
                     visit.Patient.IsImportant,
-                    visit.DailySequenceNumber);
+                    visit.DailySequenceNumber,
+                    visit.Patient.Gender,
+                    visit.Patient.AgeValue,
+                    visit.Patient.AgeUnit,
+                    visit.Patient.LabId,
+                    visit.Patient.FileCode,
+                    visit.Patient.VisitCode,
+                    visit.Patient.Notes);
 
                 switch (filterMode)
                 {
-                    case "Unwritten" when tests.Any(t => t.Status == TestStatus.New):
-                    case "Unreviewed" when tests.Any(t => !t.IsReviewed):
-                    case "Unprinted" when tests.Any(t => !t.IsPrinted):
-                    case "Important" when visit.Patient.IsImportant:
-                    case "All":
+                    case PatientListFilter.Unwritten when tests.Any(t => t.Status == TestStatus.New):
+                    case PatientListFilter.Unreviewed when tests.Any(t => !t.IsReviewed):
+                    case PatientListFilter.Unprinted when tests.Any(t => !t.IsPrinted):
+                    case PatientListFilter.Important when visit.Patient.IsImportant:
+                    case PatientListFilter.All:
                         result.Add(item);
                         break;
-                    case "Individual":
-                    case "LabToLab":
-                    case "Referral":
+                    case PatientListFilter.Individual:
+                    case PatientListFilter.LabToLab:
+                    case PatientListFilter.Referral:
                         // BillingSystem filter - simplified for now
                         result.Add(item);
                         break;
@@ -119,7 +126,14 @@ namespace NewLab.Services.Implementations
                 aggregateStatus,
                 tests.Count,
                 patient.IsImportant,
-                visit.DailySequenceNumber);
+                visit.DailySequenceNumber,
+                patient.Gender,
+                patient.AgeValue,
+                patient.AgeUnit,
+                patient.LabId,
+                patient.FileCode,
+                patient.VisitCode,
+                patient.Notes);
         }
 
         public async Task<PatientListItem?> SearchByAttendanceNumberAsync(int number, DateTime? forDate)
@@ -145,7 +159,14 @@ namespace NewLab.Services.Implementations
                 aggregateStatus,
                 tests.Count,
                 visit.Patient.IsImportant,
-                visit.DailySequenceNumber);
+                visit.DailySequenceNumber,
+                visit.Patient.Gender,
+                visit.Patient.AgeValue,
+                visit.Patient.AgeUnit,
+                visit.Patient.LabId,
+                visit.Patient.FileCode,
+                visit.Patient.VisitCode,
+                visit.Patient.Notes);
         }
 
         public async Task ToggleReviewedAsync(int patientTestId)
@@ -159,8 +180,12 @@ namespace NewLab.Services.Implementations
                 pt.Status = TestStatus.Reviewed;
                 pt.ReviewedByUserId = _currentUserService.CurrentUser?.Id;
             }
+            else
+            {
+                pt.Status = pt.Status == TestStatus.Reviewed ? TestStatus.Entered : pt.Status;
+            }
 
-            LogAudit("PatientTest", patientTestId, "Review");
+            LogAudit("PatientTest", patientTestId, pt.IsReviewed ? "Review" : "Unreview");
             await _context.SaveChangesAsync();
         }
 
@@ -169,14 +194,18 @@ namespace NewLab.Services.Implementations
             var pt = await _context.PatientTests.FindAsync(patientTestId);
             if (pt == null) return;
 
-            if (pt.Status == TestStatus.New)
+            if (pt.Status == TestStatus.Entered)
+            {
+                pt.Status = TestStatus.New;
+            }
+            else if (pt.Status == TestStatus.New)
             {
                 pt.Status = TestStatus.Entered;
                 pt.EnteredByUserId = _currentUserService.CurrentUser?.Id;
                 pt.EnteredAt = DateTime.Now;
             }
 
-            LogAudit("PatientTest", patientTestId, "Enter");
+            LogAudit("PatientTest", patientTestId, pt.Status == TestStatus.Entered ? "Enter" : "Unenter");
             await _context.SaveChangesAsync();
         }
 
@@ -191,8 +220,12 @@ namespace NewLab.Services.Implementations
                 pt.Status = TestStatus.Printed;
                 pt.PrintedByUserId = _currentUserService.CurrentUser?.Id;
             }
+            else
+            {
+                pt.Status = pt.Status == TestStatus.Printed ? TestStatus.Reviewed : pt.Status;
+            }
 
-            LogAudit("PatientTest", patientTestId, "Print");
+            LogAudit("PatientTest", patientTestId, pt.IsPrinted ? "Print" : "Unprint");
             await _context.SaveChangesAsync();
         }
 
@@ -221,6 +254,32 @@ namespace NewLab.Services.Implementations
                 .Where(a => a.EntityName == "PatientTest" && a.EntityId == patientTestId)
                 .OrderByDescending(a => a.Timestamp)
                 .ToListAsync();
+        }
+
+        public async Task<List<PatientListItem>> SearchByNameAsync(string partialName, DateTime forDate)
+        {
+            var items = await _context.Patients
+                .Where(p => p.FullName.Contains(partialName))
+                .SelectMany(p => p.Visits.Where(v => v.VisitDate.Date == forDate.Date).DefaultIfEmpty(),
+                    (patient, visit) => new { patient, visit })
+                .Select(x => new PatientListItem(
+                    x.patient.Id,
+                    x.visit != null ? x.visit.Id : 0,
+                    x.patient.FullName,
+                    TestStatus.New,
+                    0,
+                    x.patient.IsImportant,
+                    x.visit != null ? x.visit.DailySequenceNumber : 0,
+                    x.patient.Gender,
+                    x.patient.AgeValue,
+                    x.patient.AgeUnit,
+                    x.patient.LabId,
+                    x.patient.FileCode,
+                    x.patient.VisitCode,
+                    x.patient.Notes))
+                .ToListAsync();
+
+            return items;
         }
 
         private void LogAudit(string entityName, int entityId, string action)

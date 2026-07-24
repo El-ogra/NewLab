@@ -18,5 +18,6 @@ namespace NewLab.Services.Interfaces
         Task<List<ReferralPrice>> GetReferralPricesAsync(int labTestId);
         Task SetReferralPriceAsync(int labTestId, int referralId, decimal price);
         Task DeleteReferralPriceAsync(int labTestId, int referralId);
+        Task<List<SpecimenType>> GetSpecimenTypesAsync();
     }
 }

@@ -9,7 +9,7 @@
         MinHeight="600" MinWidth="700">
 
     <Window.InputBindings>
-        <KeyBinding Key="Escape" Command="{Binding PrintAllCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding CloseCommand}" />
     </Window.InputBindings>
 
     <Grid Margin="10">
@@ -49,6 +49,10 @@
                             Command="{Binding PrintAllCommand}"
                             Style="{StaticResource MaterialDesignRaisedButton}"
                             Margin="0,0,10,0" />
+                    <Button Content="طباعة كلا الأكواد"
+                            Command="{Binding PrintAllCommand}"
+                            Background="#FF9800" Foreground="White"
+                            Margin="0,0,10,0" Padding="12,8" />
                     <CheckBox Content="طباعة كود الملف مع الكل"
                               IsChecked="{Binding PrintFileCodeWithAll}"
                               VerticalAlignment="Center"
@@ -148,10 +152,16 @@
         <Border Grid.Row="3" Background="{DynamicResource MaterialDesignPaper}" Padding="10" Margin="0,0,0,0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="تحليل إضافي:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" />
-                <TextBox Text="{Binding ExtraBarcodeName}" Width="150"
+                <TextBox x:Name="ExtraBarcodeNameBox" Text="{Binding ExtraBarcodeName}" Width="150"
                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
                          materialDesign:HintAssist.Hint="اسم التحليل الإضافي"
                          Margin="0,0,10,0" />
+                <Button Click="ArrowDown_Click"
+                        Style="{StaticResource MaterialDesignIconButton}"
+                        ToolTip="انتقال للوصف"
+                        VerticalAlignment="Center" Margin="0,0,10,0">
+                    <materialDesign:PackIcon Kind="ArrowDown"/>
+                </Button>
                 <TextBox Text="{Binding ExtraBarcodeDescription}" Width="200"
                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
                          materialDesign:HintAssist.Hint="وصف العينة"
@@ -160,6 +170,15 @@
                         Command="{Binding AddExtraBarcodeCommand}"
                         Style="{StaticResource MaterialDesignRaisedButton}"
                         VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <!-- Row 4: Trash Bin -->
+        <Border Grid.Row="4" Background="#FFF44336" CornerRadius="4" Padding="8" Margin="0,5,0,0"
+                AllowDrop="True" Drop="TrashBin_Drop" DragOver="TrashBin_DragOver">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <materialDesign:PackIcon Kind="Delete" Width="24" Height="24" Foreground="White" Margin="0,0,8,0"/>
+                <TextBlock Text="اسحب هنا للحذف" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
     </Grid>

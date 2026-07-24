@@ -16,13 +16,21 @@ namespace NewLab.Services.Interfaces
         int UnprintedCount,
         decimal RemainingBalance,
         bool IsImportant,
-        int AttendanceNumber);
+        int AttendanceNumber,
+        Gender Gender,
+        decimal AgeValue,
+        AgeUnit AgeUnit,
+        string? LabId,
+        string? FileCode,
+        string? VisitCode);
 
     public sealed record DeliveryPatientTestRow(
         int PatientTestId,
         int LabTestId,
         string TestName,
         TestStatus Status,
+        bool IsReviewed,
+        bool IsEntered,
         bool IsPrinted,
         bool IsDelivered,
         decimal Price);
@@ -33,17 +41,19 @@ namespace NewLab.Services.Interfaces
         bool OnlyIndividual = false,
         bool OnlyImportant = false,
         DateTime? DateFrom = null,
-        DateTime? DateTo = null);
+        DateTime? DateTo = null,
+        int? UserId = null);
 
     public interface IDeliveryService
     {
         Task<List<DeliveryPatientRow>> GetUndeliveredTodayAsync();
         Task<List<DeliveryPatientRow>> FilterAsync(DeliveryFilter filter);
         Task<List<DeliveryPatientTestRow>> GetPatientTestsAsync(int patientId);
-        Task<(int Undelivered, int Unprinted, decimal Remaining)> GetPatientDeliveryStateAsync(int patientId);
+        Task<(int Unentered, int Undelivered, int Unprinted, decimal Remaining)> GetPatientDeliveryStateAsync(int patientId);
         Task DeliverAllResultsAsync(int patientId, int userId);
         Task UnmarkDeliveredAsync(int patientId, int userId);
         Task<PaymentTransaction> SettleAccountAsync(int patientId, decimal amount, int userId, string? note = null);
+        Task ClearAccountAsync(int patientId, int userId);
         Task<DeliveryPatientRow?> SearchByCodeAsync(string code);
     }
 }

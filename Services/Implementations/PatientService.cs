@@ -100,6 +100,19 @@ namespace NewLab.Services.Implementations
                             {
                                 priceForThisTest = referralPrice.Price;
                             }
+                            else
+                            {
+                                // Fallback to LabToLabPrice from LabTest entity
+                                var labTest = await _context.LabTests.FindAsync(test.LabTestId);
+                                if (labTest != null)
+                                    priceForThisTest = labTest.LabToLabPrice;
+                            }
+                        }
+                        else
+                        {
+                            var labTest = await _context.LabTests.FindAsync(test.LabTestId);
+                            if (labTest != null)
+                                priceForThisTest = labTest.LabToLabPrice;
                         }
                         total += priceForThisTest;
                         break;

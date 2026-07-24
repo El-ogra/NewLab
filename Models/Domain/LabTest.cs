@@ -76,6 +76,9 @@ namespace NewLab.Models.Domain
         [MaxLength(500)]
         public string? PromptQuestion { get; set; }
 
+        [MaxLength(100)]
+        public string? LabelName { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         // Navigation properties
@@ -90,5 +93,7 @@ namespace NewLab.Models.Domain
         public ICollection<LabTestElement> Elements { get; set; } = new List<LabTestElement>();
 
         public ICollection<ReferralPrice> ReferralPrices { get; set; } = new List<ReferralPrice>();
+
+        public ICollection<LabTestSpecimen> Specimens { get; set; } = new List<LabTestSpecimen>();
     }
 }

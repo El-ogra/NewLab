@@ -31,6 +31,10 @@ namespace NewLab.Models.Domain
 
         public DateTime? ReviewedAt { get; set; }
 
+        public bool IsReviewed { get; set; }
+
+        public bool IsPrinted { get; set; }
+
         // Navigation properties
         public PatientTest PatientTest { get; set; } = null!;
 

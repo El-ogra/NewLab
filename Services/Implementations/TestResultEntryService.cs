@@ -110,20 +110,20 @@ namespace NewLab.Services.Implementations
                 .ToListAsync();
         }
 
-        public async Task MarkReviewedAsync(int patientTestId)
+        public async Task MarkReviewedAsync(int patientTestId, bool isReviewed)
         {
             var pt = await _context.PatientTests.FindAsync(patientTestId);
             if (pt != null)
             {
-                pt.IsReviewed = true;
-                pt.ReviewedByUserId = _currentUserService.CurrentUser?.Id;
-                pt.Status = TestStatus.Reviewed;
+                pt.IsReviewed = isReviewed;
+                pt.ReviewedByUserId = isReviewed ? _currentUserService.CurrentUser?.Id : null;
+                pt.Status = isReviewed ? TestStatus.Reviewed : TestStatus.Entered;
 
                 _context.AuditLogs.Add(new AuditLog
                 {
                     EntityName = "PatientTest",
                     EntityId = patientTestId,
-                    Action = "Review",
+                    Action = isReviewed ? "Review" : "Unreview",
                     UserId = _currentUserService.CurrentUser?.Id ?? 0,
                     Timestamp = DateTime.Now
                 });

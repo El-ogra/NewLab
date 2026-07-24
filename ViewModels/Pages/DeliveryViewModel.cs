@@ -19,16 +19,20 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private ObservableCollection<DeliveryPatientRow> patients = new();
         [ObservableProperty] private DeliveryPatientRow? selectedPatient;
         [ObservableProperty] private ObservableCollection<DeliveryPatientTestRow> patientTests = new();
+        [ObservableProperty] private int unenteredCount;
         [ObservableProperty] private int undeliveredCount;
         [ObservableProperty] private int unprintedCount;
         [ObservableProperty] private decimal remainingBalance;
-        [ObservableProperty] private string filterMode = "Undelivered";
+        [ObservableProperty] private DeliveryFilterMode filterMode = DeliveryFilterMode.Undelivered;
         [ObservableProperty] private DateTime? filterDateFrom = DateTime.Today;
         [ObservableProperty] private DateTime? filterDateTo = DateTime.Today;
         [ObservableProperty] private string searchCode = string.Empty;
         [ObservableProperty] private decimal settlementAmount;
 
+        private DeliveryPatientRow? _pendingReceiptPatient;
+
         public bool IsAdmin => _currentUserService.IsAdmin;
+        public DeliveryFilterMode[] FilterModes => Enum.GetValues<DeliveryFilterMode>();
 
         public DeliveryViewModel(
             IDeliveryService deliveryService,
@@ -58,6 +62,14 @@ namespace NewLab.ViewModels.Pages
         private async Task DeliverManuallyAsync()
         {
             if (SelectedPatient == null) return;
+
+            // Check remaining balance
+            if (SelectedPatient.RemainingBalance > 0)
+            {
+                var continueWithBalance = _dialogService.ShowConfirmation("تنبيه باقي حساب",
+                    $"يوجد باقي حساب {SelectedPatient.RemainingBalance:F2} — هل تريد الاستمرار في التسليم؟");
+                if (!continueWithBalance) return;
+            }
 
             var confirmed = _dialogService.ShowConfirmation("تأكيد التسليم", "هل أنت متأكد من تسليم جميع نتائج هذا المريض؟");
             if (!confirmed) return;
@@ -139,12 +151,58 @@ namespace NewLab.ViewModels.Pages
         [RelayCommand]
         private async Task ScanBarcodeAsync(string raw)
         {
-            var result = await _deliveryService.SearchByCodeAsync(raw);
-            if (result != null)
+            if (string.IsNullOrWhiteSpace(raw)) return;
+
+            var codeType = Helpers.BarcodeCodeTypeDetector.Detect(raw);
+
+            if (codeType == Helpers.BarcodeCodeType.VisitCode)
+            {
+                // First scan: receipt code (starts with '1')
+                var result = await _deliveryService.SearchByCodeAsync(raw);
+                if (result != null)
+                {
+                    _pendingReceiptPatient = result;
+                    _dialogService.ShowMessage("معلومة", $"تم تسجيل كود الإيصال: {result.FullName}\nالآن امسح كود الملف للتأكيد");
+                }
+                else
+                {
+                    _dialogService.ShowMessage("خطأ", "لم يتم العثور على مريض بهذا الكود");
+                }
+                return;
+            }
+
+            if (codeType == Helpers.BarcodeCodeType.FileCode && _pendingReceiptPatient != null)
+            {
+                // Second scan: file code (starts with '3') — compare with pending
+                var result = await _deliveryService.SearchByCodeAsync(raw);
+                if (result != null && result.PatientId == _pendingReceiptPatient.PatientId)
+                {
+                    // Match confirmed
+                    var confirmed = _dialogService.ShowConfirmation("تأكيد التسليم", $"هل تريد تسليم النتائج لـ {_pendingReceiptPatient.FullName}؟");
+                    if (confirmed)
+                    {
+                        await _deliveryService.DeliverAllResultsAsync(_pendingReceiptPatient.PatientId, _currentUserService.CurrentUser!.Id);
+                        _dialogService.ShowMessage("نجاح", "تم التسليم بنجاح");
+                    }
+                    _pendingReceiptPatient = null;
+                    await RefreshAsync();
+                    return;
+                }
+                else
+                {
+                    _dialogService.ShowMessage("خطأ", "كود الملف لا يتطابق مع كود الإيصال");
+                    _pendingReceiptPatient = null;
+                    return;
+                }
+            }
+
+            // Default: normal search
+            var defaultResult = await _deliveryService.SearchByCodeAsync(raw);
+            if (defaultResult != null)
             {
                 Patients.Clear();
-                Patients.Add(result);
-                SelectedPatient = result;
+                Patients.Add(defaultResult);
+                SelectedPatient = defaultResult;
             }
             else
             {
@@ -156,6 +214,19 @@ namespace NewLab.ViewModels.Pages
         private void BackToMain()
         {
             _navigationService.GoBack();
+        }
+
+        [RelayCommand]
+        private async Task ClearAccountAsync()
+        {
+            if (SelectedPatient == null) return;
+            var confirmed = _dialogService.ShowConfirmation("تأكيد تصفية الحساب", "هل أنت متأكد من تصفية حساب هذا المريض؟");
+            if (!confirmed) return;
+
+            var userId = _currentUserService.CurrentUser?.Id ?? 0;
+            await _deliveryService.ClearAccountAsync(SelectedPatient.PatientId, userId);
+            _dialogService.ShowMessage("نجاح", "تم تصفية الحساب بنجاح");
+            await LoadTestsAndSummaryAsync(SelectedPatient.PatientId);
         }
 
         private bool CanDeliver() => SelectedPatient != null;
@@ -170,7 +241,7 @@ namespace NewLab.ViewModels.Pages
             UnmarkDeliveredCommand.NotifyCanExecuteChanged();
         }
 
-        partial void OnFilterModeChanged(string value)
+        partial void OnFilterModeChanged(DeliveryFilterMode value)
         {
             _ = RefreshAsync();
         }
@@ -183,6 +254,7 @@ namespace NewLab.ViewModels.Pages
                 PatientTests.Add(test);
 
             var state = await _deliveryService.GetPatientDeliveryStateAsync(patientId);
+            UnenteredCount = state.Unentered;
             UndeliveredCount = state.Undelivered;
             UnprintedCount = state.Unprinted;
             RemainingBalance = state.Remaining;
@@ -190,10 +262,10 @@ namespace NewLab.ViewModels.Pages
 
         private DeliveryFilter BuildFilter()
         {
-            bool onlyUndelivered = FilterMode == "Undelivered";
-            bool onlyLabToLab = FilterMode == "LabToLab";
-            bool onlyIndividual = FilterMode == "Individual";
-            bool onlyImportant = FilterMode == "Important";
+            bool onlyUndelivered = FilterMode == DeliveryFilterMode.Undelivered;
+            bool onlyLabToLab = FilterMode == DeliveryFilterMode.LabToLab;
+            bool onlyIndividual = FilterMode == DeliveryFilterMode.Individual;
+            bool onlyImportant = FilterMode == DeliveryFilterMode.Important;
 
             return new DeliveryFilter(
                 OnlyUndelivered: onlyUndelivered,

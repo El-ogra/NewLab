@@ -23,29 +23,49 @@
         <!-- Row 0: Patient info -->
         <Border Grid.Row="0" Padding="12" Margin="0,0,0,12" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1" CornerRadius="4">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="Patient" FontWeight="Bold" Foreground="Gray"/>
-                    <TextBlock Text="{Binding PatientName}" FontSize="16" FontWeight="Bold"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Lab ID" FontWeight="Bold" Foreground="Gray"/>
-                    <TextBlock Text="{Binding PatientLabId}" FontSize="16"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="Test" FontWeight="Bold" Foreground="Gray"/>
-                    <TextBlock Text="{Binding TestTitle}" FontSize="16"/>
-                </StackPanel>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="{Binding TestTitle}" FontSize="18" FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,8"/>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="الاسم" FontWeight="Bold" Foreground="Gray"/>
+                        <TextBlock Text="{Binding PatientName}" FontSize="14"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="رقم المعمل" FontWeight="Bold" Foreground="Gray"/>
+                        <TextBlock Text="{Binding PatientLabId}" FontSize="14"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="الجنس" FontWeight="Bold" Foreground="Gray"/>
+                        <TextBlock Text="{Binding PatientGender}" FontSize="14"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="3">
+                        <TextBlock Text="السن" FontWeight="Bold" Foreground="Gray"/>
+                        <TextBlock Text="{Binding PatientAge}" FontSize="14"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="تاريخ الزيارة" FontWeight="Bold" Foreground="Gray"/>
+                        <TextBlock Text="{Binding VisitDate, StringFormat='{}{0:yyyy-MM-dd}'}" FontSize="14"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
 
         <!-- Row 1: Results DataGrid -->
         <DataGrid Grid.Row="1"
+                  x:Name="ResultDataGrid"
                   ItemsSource="{Binding ResultRows}"
+                  SelectedItem="{Binding SelectedResultRow}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
@@ -54,17 +74,19 @@
                   Margin="0,0,0,12">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Element" Binding="{Binding Name}" IsReadOnly="True" Width="*"/>
-                <DataGridTemplateColumn Header="Value" Width="150">
+                <DataGridTextColumn Header="Normal Range" Binding="{Binding NormalRangeText}" IsReadOnly="True" Width="120"/>
+                <DataGridTemplateColumn Header="Value" Width="120">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     IsEnabled="{Binding IsEnabled}"
                                      Padding="4"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" IsReadOnly="True" Width="80"/>
-                <DataGridTemplateColumn Header="Flag" IsReadOnly="True" Width="100">
+                <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" IsReadOnly="True" Width="70"/>
+                <DataGridTemplateColumn Header="Flag" IsReadOnly="True" Width="90">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Border Background="{Binding CellColor}">
@@ -73,6 +95,8 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                <DataGridCheckBoxColumn Header="Rev" Binding="{Binding IsReviewed}" Width="40"/>
+                <DataGridCheckBoxColumn Header="Prn" Binding="{Binding IsPrinted}" Width="40"/>
             </DataGrid.Columns>
         </DataGrid>
 
@@ -91,11 +115,28 @@
                          AcceptsReturn="True" TextWrapping="Wrap" Height="60"
                          Margin="0,0,0,8"/>
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Saved Comments" Command="{Binding PickSavedCommentCommand}"
-                            Margin="0,0,8,0" Padding="12,6"/>
+                    <materialDesign:PopupBox Margin="0,0,8,0">
+                        <materialDesign:PopupBox.ToggleContent>
+                            <Button Content="Saved Comments" Padding="12,6"/>
+                        </materialDesign:PopupBox.ToggleContent>
+                        <ItemsControl ItemsSource="{Binding SavedComments}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding CommentText}"
+                                            CommandParameter="{Binding .}"
+                                            Command="{Binding DataContext.PickSavedCommentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Right"
+                                            Padding="8,4"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </materialDesign:PopupBox>
                     <Button Content="Comment from Normal Range"
+                            Command="{Binding PickCommentFromNormalRangeCommand}"
                             Margin="0,0,8,0" Padding="12,6"/>
                     <Button Content="Undo Comment"
+                            Command="{Binding UndoLastCommentCommand}"
                             Margin="0,0,8,0" Padding="12,6"/>
                 </StackPanel>
             </StackPanel>

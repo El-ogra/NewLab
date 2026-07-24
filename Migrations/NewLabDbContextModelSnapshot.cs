@@ -270,6 +270,10 @@ namespace NewLab.Migrations
                     b.Property<decimal>("LabToLabPrice")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("LabelName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("LogGroup")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -410,6 +414,36 @@ namespace NewLab.Migrations
                     b.ToTable("LabTestElements");
                 });
 
+            modelBuilder.Entity("NewLab.Models.Domain.LabTestSpecimen", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("LabTestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LabelName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SpecimenTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TubeOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabTestId");
+
+                    b.HasIndex("SpecimenTypeId");
+
+                    b.ToTable("LabTestSpecimens");
+                });
+
             modelBuilder.Entity("NewLab.Models.Domain.NormalRange", b =>
                 {
                     b.Property<int>("Id")
@@ -444,6 +478,9 @@ namespace NewLab.Migrations
                     b.Property<string>("CriticalRangeText")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("ForPregnancyOnly")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Gender")
                         .HasColumnType("int");
@@ -504,8 +541,8 @@ namespace NewLab.Migrations
                     b.Property<int>("AgeUnit")
                         .HasColumnType("int");
 
-                    b.Property<int>("AgeValue")
-                        .HasColumnType("int");
+                    b.Property<decimal>("AgeValue")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("BillingSystem")
                         .HasColumnType("int");
@@ -793,6 +830,33 @@ namespace NewLab.Migrations
                     b.ToTable("PaymentTransactions");
                 });
 
+            modelBuilder.Entity("NewLab.Models.Domain.ReceiptSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AutoPrintAfterSave")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowTestsDetails")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReceiptSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AutoPrintAfterSave = false,
+                            ShowTestsDetails = true
+                        });
+                });
+
             modelBuilder.Entity("NewLab.Models.Domain.Referral", b =>
                 {
                     b.Property<int>("Id")
@@ -1017,6 +1081,12 @@ namespace NewLab.Migrations
                     b.Property<bool>("IsCritical")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsPrinted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsReviewed")
+                        .HasColumnType("bit");
+
                     b.Property<int>("LabTestElementId")
                         .HasColumnType("int");
 
@@ -1157,6 +1227,25 @@ namespace NewLab.Migrations
                         .IsRequired();
 
                     b.Navigation("ParentLabTest");
+                });
+
+            modelBuilder.Entity("NewLab.Models.Domain.LabTestSpecimen", b =>
+                {
+                    b.HasOne("NewLab.Models.Domain.LabTest", "LabTest")
+                        .WithMany("Specimens")
+                        .HasForeignKey("LabTestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NewLab.Models.Domain.SpecimenType", "SpecimenType")
+                        .WithMany()
+                        .HasForeignKey("SpecimenTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+
+                    b.Navigation("SpecimenType");
                 });
 
             modelBuilder.Entity("NewLab.Models.Domain.NormalRange", b =>
@@ -1359,6 +1448,8 @@ namespace NewLab.Migrations
                     b.Navigation("Elements");
 
                     b.Navigation("ReferralPrices");
+
+                    b.Navigation("Specimens");
                 });
 
             modelBuilder.Entity("NewLab.Models.Domain.Patient", b =>

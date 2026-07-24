@@ -38,10 +38,14 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private PatientSearchRow? selectedResult;
         [ObservableProperty] private ObservableCollection<PatientTest> selectedResultTests = new();
         [ObservableProperty] private PatientTestsSummary? summary;
+        [ObservableProperty] private int openAccountsCount;
 
         public bool IsAdmin => _currentUserService.IsAdmin;
         public bool IsBackupSearchEnabled => false;
         public List<Referral> AvailableReferrals { get; private set; } = new();
+        public Gender?[] AvailableGenders => new Gender?[] { null, Gender.Male, Gender.Female };
+        public AgeUnit?[] AvailableAgeUnits => new AgeUnit?[] { null, AgeUnit.Day, AgeUnit.Month, AgeUnit.Year };
+        public SearchSource[] AvailableSources => Enum.GetValues<SearchSource>();
 
         public SearchViewModel(
             IPatientSearchService searchService,
@@ -57,6 +61,12 @@ namespace NewLab.ViewModels.Pages
             _currentUserService = currentUserService;
 
             _ = LoadReferralsAsync();
+            _ = LoadOpenAccountsCountAsync();
+        }
+
+        private async Task LoadOpenAccountsCountAsync()
+        {
+            OpenAccountsCount = await _searchService.GetOpenAccountsCountAsync();
         }
 
         [RelayCommand]

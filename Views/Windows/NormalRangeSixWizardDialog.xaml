@@ -1,0 +1,49 @@
+<Window x:Class="NewLab.Views.Windows.NormalRangeSixWizardDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="إدخال 6 معدلات"
+        Height="400" Width="450"
+        WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft"
+        ResizeMode="NoResize">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="إدخال 6 معدلات (تحليل لا يعتمد على الجنس/السن)"
+                   FontSize="16" FontWeight="Bold" Margin="0,0,0,12"
+                   Foreground="{StaticResource PrimaryBrush}"/>
+
+        <StackPanel Grid.Row="1">
+            <TextBox x:Name="UnitBox" materialDesign:HintAssist.Hint="الوحدة"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="RangeTextBox" materialDesign:HintAssist.Hint="النطاق"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="LowLimitBox" materialDesign:HintAssist.Hint="الحد الأدنى"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="HighLimitBox" materialDesign:HintAssist.Hint="الحد الأعلى"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="LowFlagBox" materialDesign:HintAssist.Hint="علامة انخفاض"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="HighFlagBox" materialDesign:HintAssist.Hint="علامة ارتفاع"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="LowCommentBox" materialDesign:HintAssist.Hint="تعليق انخفاض"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+            <TextBox x:Name="HighCommentBox" materialDesign:HintAssist.Hint="تعليق ارتفاع"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,8"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Content="موافق" Click="Ok_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Margin="8,0" Padding="16,8"/>
+            <Button Content="إلغاء" Click="Cancel_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Margin="8,0" Padding="16,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

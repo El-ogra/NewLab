@@ -161,5 +161,10 @@ namespace NewLab.Services.Implementations
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<List<SpecimenType>> GetSpecimenTypesAsync()
+        {
+            return await _context.SpecimenTypes.OrderBy(st => st.Name).ToListAsync();
+        }
     }
 }

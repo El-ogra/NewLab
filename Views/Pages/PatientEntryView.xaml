@@ -2,16 +2,27 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:NewLab.Converters"
+             xmlns:helpers="clr-namespace:NewLab.Helpers.Interactions"
+             helpers:GlobalShortcuts.RegisterOn="True"
+             PreviewKeyDown="UserControl_PreviewKeyDown"
              FlowDirection="RightToLeft">
 
     <UserControl.InputBindings>
-        <KeyBinding Key="F1" Command="{Binding AddSelectedTestCommand}" />
+        <KeyBinding Key="F1" Command="{Binding ShowTestInfoCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+        <KeyBinding Key="F8" Command="{Binding EditCommand}" />
         <KeyBinding Key="F9" Command="{Binding SaveCommand}" />
         <KeyBinding Key="F10" Command="{Binding DeleteCommand}" />
         <KeyBinding Key="F11" Command="{Binding PrintBarcodeCommand}" />
         <KeyBinding Key="F12" Command="{Binding PrintReceiptCommand}" />
+        <KeyBinding Key="Enter" Command="{Binding KeyboardEnterCommand}" />
         <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
     </UserControl.InputBindings>
+
+    <UserControl.Resources>
+        <converters:EnumToArabicConverter x:Key="EnumToArabicConverter"/>
+    </UserControl.Resources>
 
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
@@ -85,10 +96,13 @@
                               DisplayMemberPath="Name"
                               Margin="0,0,0,8"/>
 
-                    <TextBox Text="{Binding ExternalSpecimenTypeId, UpdateSourceTrigger=PropertyChanged}"
-                             materialDesign:HintAssist.Hint="نوع العينة الخارجية"
-                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                             Margin="0,0,0,8"/>
+                    <ComboBox materialDesign:HintAssist.Hint="نوع العينة الخارجية"
+                              ItemsSource="{Binding AvailableSpecimenTypes}"
+                              SelectedValue="{Binding ExternalSpecimenTypeId}"
+                              SelectedValuePath="Id"
+                              DisplayMemberPath="Name"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                              Margin="0,0,0,8"/>
 
                     <CheckBox Content="إخفاء جهة الإحالة في التقرير"
                               IsChecked="{Binding ReferralHiddenOnReport}" Margin="0,0,0,12"/>
@@ -121,6 +135,16 @@
 
                     <CheckBox Content="مدخن"
                               IsChecked="{Binding IsSmoker}" Margin="0,0,0,8"/>
+
+                    <TextBlock Text="ملاحظات" FontSize="14" FontWeight="SemiBold"
+                               Margin="0,0,0,8" Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="ملاحظات"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80"
+                             Margin="0,0,0,8"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -139,18 +163,29 @@
                 <TextBlock Grid.Row="0" Text="التحاليل المتاحة" FontSize="18" FontWeight="Bold"
                            Margin="0,0,0,8" Foreground="{StaticResource PrimaryBrush}"/>
 
-                <TextBox Grid.Row="1"
-                         Text="{Binding TestListFilter, UpdateSourceTrigger=PropertyChanged}"
-                         materialDesign:HintAssist.Hint="بحث"
-                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                         Margin="0,0,0,8"/>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                    <ComboBox Width="120" ItemsSource="{Binding AvailableTestListModes}"
+                              SelectedItem="{Binding SelectedTestListMode}"
+                              materialDesign:HintAssist.Hint="نوع القائمة" Margin="0,0,8,0">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource EnumToArabicConverter}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBox Width="200"
+                             Text="{Binding TestListFilter, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="بحث"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                </StackPanel>
 
                 <ListBox Grid.Row="2" ItemsSource="{Binding AvailableTests}"
                          SelectedItem="{Binding SelectedAvailableTest}"
                          DisplayMemberPath="TestName"
+                         helpers:DoubleClickBehavior.Command="{Binding AddSelectedTestCommand}"
                          Margin="0,0,0,8"/>
 
-                <Button Grid.Row="3" Content="إضافة التحليل (F1)"
+                <Button Grid.Row="3" Content="إضافة التحليل"
                         Command="{Binding AddSelectedTestCommand}"
                         Style="{StaticResource MaterialDesignRaisedButton}"
                         HorizontalAlignment="Stretch" Padding="16,8"/>
@@ -242,6 +277,10 @@
                             Command="{Binding SaveCommand}"
                             Style="{StaticResource MaterialDesignRaisedButton}"
                             Margin="4" Padding="16,8"/>
+                    <Button Content="موافق"
+                            Command="{Binding ConfirmCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="4" Padding="16,8"/>
                     <Button Content="إيصال"
                             Command="{Binding PrintReceiptCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
@@ -254,10 +293,26 @@
                             Command="{Binding LookupLabIdCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="4" Padding="16,8"/>
-                    <Button Content="مرضى اليوم"
-                            Command="{Binding TodayPatientsCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            Margin="4" Padding="16,8"/>
+                    <materialDesign:PopupBox Margin="4">
+                        <materialDesign:PopupBox.ToggleContent>
+                            <Button Content="مرضى اليوم" Style="{StaticResource MaterialDesignOutlinedButton}" Padding="16,8"/>
+                        </materialDesign:PopupBox.ToggleContent>
+                        <ItemsControl ItemsSource="{Binding TodayPatients}" MaxHeight="300">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button HorizontalAlignment="Stretch" Padding="8,4"
+                                            CommandParameter="{Binding .}"
+                                            Command="{Binding DataContext.SelectTodayPatientCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            HorizontalContentAlignment="Right">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding FullName}" FontWeight="Bold" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding LabId}" Foreground="Gray"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </materialDesign:PopupBox>
                     <Button Content="خالص"
                             Command="{Binding MarkAsPaidCommand}"
                             Style="{StaticResource MaterialDesignRaisedButton}"

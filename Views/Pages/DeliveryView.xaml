@@ -3,15 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:NewLab.Converters"
+             xmlns:helpers="clr-namespace:NewLab.Helpers.Interactions"
+             helpers:GlobalShortcuts.RegisterOn="True"
              FlowDirection="RightToLeft">
     <UserControl.InputBindings>
         <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
-        <KeyBinding Key="F9" Command="{Binding DeliverManuallyCommand}" />
         <KeyBinding Key="Escape" Command="{Binding BackToMainCommand}" />
     </UserControl.InputBindings>
     <UserControl.Resources>
         <converters:TestStatusToIconConverter x:Key="TestStatusToIconConverter"/>
         <converters:TestStatusToColorConverter x:Key="TestStatusToColorConverter"/>
+        <converters:EnumToArabicConverter x:Key="EnumToArabicConverter"/>
     </UserControl.Resources>
     <Grid Margin="16">
         <Grid.ColumnDefinitions>
@@ -55,13 +57,14 @@
 
                 <!-- Filter ComboBox -->
                 <ComboBox Grid.Row="3" Margin="0,0,0,8"
+                          ItemsSource="{Binding FilterModes}"
                           SelectedItem="{Binding FilterMode}"
                           materialDesign:HintAssist.Hint="الفلتر">
-                    <ComboBoxItem Content="غير مستلم"/>
-                    <ComboBoxItem Content="الكل"/>
-                    <ComboBoxItem Content="معمل مع معمل"/>
-                    <ComboBoxItem Content="فردي"/>
-                    <ComboBoxItem Content="مهم"/>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource EnumToArabicConverter}}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
                 </ComboBox>
 
                 <!-- Patient list -->
@@ -78,6 +81,7 @@
                                                         Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="{Binding FullName}"
                                            VerticalAlignment="Center"
+                                           Foreground="{Binding IsImportant, Converter={StaticResource BoolToRedBrushConverter}}"
                                            FontWeight="{Binding IsImportant, Converter={x:Static converters:InverseBoolToVisibilityConverter.Instance}}"/>
                                 <TextBlock Text="{Binding AttendanceNumber, StringFormat='[{0}]'}"
                                            Foreground="Gray" VerticalAlignment="Center" Margin="4,0,0,0"/>
@@ -99,10 +103,33 @@
                 <!-- Patient info -->
                 <StackPanel Grid.Row="0" Margin="0,0,0,8">
                     <TextBlock Text="{Binding SelectedPatient.FullName, FallbackValue='اختر مريضاً'}"
-                               FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
+                               FontSize="18" FontWeight="Bold" Margin="0,0,0,4"
+                               Foreground="{Binding SelectedPatient.IsImportant, Converter={StaticResource BoolToRedBrushConverter}}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <TextBlock Text="رقم الحضور: " Foreground="Gray"/>
                         <TextBlock Text="{Binding SelectedPatient.AttendanceNumber}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="الجنس: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.Gender, Converter={StaticResource EnumToArabicConverter}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="العمر: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.AgeValue}"/>
+                        <TextBlock Text=" "/>
+                        <TextBlock Text="{Binding SelectedPatient.AgeUnit, Converter={StaticResource EnumToArabicConverter}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="رقم المعمل: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.LabId}" Cursor="Hand" MouseLeftButtonDown="LabId_MouseLeftButtonDown"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="كود الملف: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.FileCode}" Cursor="Hand" MouseLeftButtonDown="FileCode_MouseLeftButtonDown"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="كود الزيارة: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.VisitCode}" Cursor="Hand" MouseLeftButtonDown="VisitCode_MouseLeftButtonDown"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <TextBlock Text="عدد التحاليل: " Foreground="Gray"/>
@@ -119,9 +146,21 @@
                           CanUserSortColumns="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="التحليل" Binding="{Binding TestName}" Width="*"/>
-                        <DataGridTextColumn Header="الحالة" Binding="{Binding Status}" Width="80"/>
-                        <DataGridTextColumn Header="مطبوع" Binding="{Binding IsPrinted}" Width="60"/>
-                        <DataGridTextColumn Header="مسلَّم" Binding="{Binding IsDelivered}" Width="60"/>
+                        <DataGridTemplateColumn Header="الحالة" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="{Binding Status, Converter={StaticResource TestStatusToIconConverter}}"
+                                                                 Foreground="{Binding Status, Converter={StaticResource TestStatusToColorConverter}}"
+                                                                 Width="16" Height="16" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridCheckBoxColumn Header="كُتب" Binding="{Binding IsEntered}" Width="50"/>
+                        <DataGridCheckBoxColumn Header="راجَع" Binding="{Binding IsReviewed}" Width="50"/>
+                        <DataGridCheckBoxColumn Header="مطبوع" Binding="{Binding IsPrinted}" Width="50"/>
+                        <DataGridCheckBoxColumn Header="مسلَّم" Binding="{Binding IsDelivered}" Width="50"/>
                         <DataGridTextColumn Header="السعر" Binding="{Binding Price, StringFormat='{}{0:F2}'}" Width="80"/>
                     </DataGrid.Columns>
                 </DataGrid>
@@ -133,6 +172,10 @@
             <StackPanel>
                 <!-- Summary -->
                 <TextBlock Text="ملخص" FontWeight="Bold" Margin="0,0,0,8"/>
+                <StackPanel Margin="0,0,0,4">
+                    <TextBlock Text="غير مُدخل: " Foreground="Gray"/>
+                    <TextBlock Text="{Binding UnenteredCount}" FontWeight="Bold"/>
+                </StackPanel>
                 <StackPanel Margin="0,0,0,4">
                     <TextBlock Text="غير مستلم: " Foreground="Gray"/>
                     <TextBlock Text="{Binding UndeliveredCount}" FontWeight="Bold"/>
@@ -147,7 +190,7 @@
                 </StackPanel>
 
                 <!-- Actions -->
-                <Button Content="F9 - تسليم يدوي" Command="{Binding DeliverManuallyCommand}"
+                <Button Content="تسليم يدوي" Command="{Binding DeliverManuallyCommand}"
                         Style="{StaticResource MaterialDesignRaisedButton}"
                         Margin="0,0,0,8" Padding="8,8"/>
                 <Button Content="F5 - تحديث" Command="{Binding RefreshCommand}"
@@ -166,6 +209,12 @@
                 <Button Content="مستلمة (إلغاء)" Command="{Binding UnmarkDeliveredCommand}"
                         IsEnabled="{Binding IsAdmin}"
                         Background="{StaticResource SecondaryBrush}" Foreground="White"
+                        Margin="0,0,0,12" Padding="8,6"/>
+
+                <!-- Clear Account (Admin only) -->
+                <Button Content="تصفية حساب" Command="{Binding ClearAccountCommand}"
+                        IsEnabled="{Binding IsAdmin}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
                         Margin="0,0,0,12" Padding="8,6"/>
 
                 <!-- Back -->

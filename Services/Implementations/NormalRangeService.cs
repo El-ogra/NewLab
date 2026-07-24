@@ -106,7 +106,7 @@ namespace NewLab.Services.Implementations
             return Task.FromResult(new NormalRangeEvaluation("Normal", null));
         }
 
-        private static decimal ConvertAgeToUnit(int ageValue, AgeUnit fromUnit, AgeUnit toUnit)
+        private static decimal ConvertAgeToUnit(decimal ageValue, AgeUnit fromUnit, AgeUnit toUnit)
         {
             if (fromUnit == toUnit)
                 return ageValue;

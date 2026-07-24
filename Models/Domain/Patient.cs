@@ -18,7 +18,7 @@ namespace NewLab.Models.Domain
 
         public Gender Gender { get; set; }
 
-        public int AgeValue { get; set; }
+        public decimal AgeValue { get; set; }
 
         public AgeUnit AgeUnit { get; set; }
 

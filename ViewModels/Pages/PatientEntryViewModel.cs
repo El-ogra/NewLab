@@ -21,13 +21,17 @@ namespace NewLab.ViewModels.Pages
         private readonly IValidator<Patient> _patientValidator;
         private readonly ICurrentUserService _currentUserService;
         private readonly IBarcodeService _barcodeService;
+        private readonly IReceiptPdfService _receiptPdfService;
+        private readonly IReceiptSettingsService _receiptSettingsService;
         private readonly Func<BarcodeViewModel> _barcodeViewModelFactory;
+
+        private DateTime _lastEnterAt = DateTime.MinValue;
 
         // Patient fields
         [ObservableProperty] private string fullName = string.Empty;
         [ObservableProperty] private string? title;
         [ObservableProperty] private Gender gender = Gender.Male;
-        [ObservableProperty] private int ageValue;
+        [ObservableProperty] private decimal ageValue;
         [ObservableProperty] private AgeUnit ageUnit = AgeUnit.Year;
         [ObservableProperty] private BillingSystem billingSystem = BillingSystem.Individual;
         [ObservableProperty] private bool isImportant;
@@ -59,7 +63,6 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private bool isEditMode;
         [ObservableProperty] private bool isAddMode = true;
         [ObservableProperty] private string searchText = string.Empty;
-        [ObservableProperty] private string testListFilter = string.Empty;
         [ObservableProperty] private decimal remaining;
         [ObservableProperty] private string selectedReferralName = string.Empty;
 
@@ -67,11 +70,16 @@ namespace NewLab.ViewModels.Pages
         public ObservableCollection<PatientTestRow> SelectedTests { get; } = new();
         public ObservableCollection<LabTest> AvailableTests { get; } = new();
         public ObservableCollection<Referral> ReferralSuggestions { get; } = new();
+        public ObservableCollection<SpecimenType> AvailableSpecimenTypes { get; } = new();
 
         // Permissions (Decision 2)
         public bool IsAdmin => _currentUserService.IsAdmin;
+        public TestListMode[] AvailableTestListModes => Enum.GetValues<TestListMode>();
 
         [ObservableProperty] private LabTest? selectedAvailableTest;
+        [ObservableProperty] private TestListMode selectedTestListMode = TestListMode.Routine;
+        [ObservableProperty] private string testListFilter = string.Empty;
+        [ObservableProperty] private ObservableCollection<Patient> todayPatients = new();
 
         private int? _editingPatientId;
 
@@ -84,6 +92,8 @@ namespace NewLab.ViewModels.Pages
             IValidator<Patient> patientValidator,
             ICurrentUserService currentUserService,
             IBarcodeService barcodeService,
+            IReceiptPdfService receiptPdfService,
+            IReceiptSettingsService receiptSettingsService,
             Func<BarcodeViewModel> barcodeViewModelFactory)
         {
             _patientService = patientService;
@@ -94,9 +104,46 @@ namespace NewLab.ViewModels.Pages
             _patientValidator = patientValidator;
             _currentUserService = currentUserService;
             _barcodeService = barcodeService;
+            _receiptPdfService = receiptPdfService;
+            _receiptSettingsService = receiptSettingsService;
             _barcodeViewModelFactory = barcodeViewModelFactory;
 
             _ = LoadAvailableTestsAsync();
+            _ = LoadSpecimenTypesAsync();
+        }
+
+        partial void OnGenderChanged(Gender value)
+        {
+            Title = value == Gender.Male ? "السيد" : "السيدة";
+        }
+
+        private async Task LoadSpecimenTypesAsync()
+        {
+            var types = await _labTestService.GetSpecimenTypesAsync();
+            AvailableSpecimenTypes.Clear();
+            foreach (var type in types)
+                AvailableSpecimenTypes.Add(type);
+        }
+
+        [RelayCommand]
+        private void ShowTestInfo()
+        {
+            if (SelectedAvailableTest == null)
+            {
+                _dialogService.ShowMessage("خطأ", "اختر تحليلاً أولاً");
+                return;
+            }
+            _dialogService.ShowMessage("بيانات التحليل",
+                $"الكود: {SelectedAvailableTest.Code}\n" +
+                $"الاسم: {SelectedAvailableTest.TestName}\n" +
+                $"سعر المريض: {SelectedAvailableTest.PatientPrice}\n" +
+                $"سعر المعمل للمعمل: {SelectedAvailableTest.LabToLabPrice}");
+        }
+
+        [RelayCommand]
+        private async Task RefreshAsync()
+        {
+            await LoadAvailableTestsAsync();
         }
 
         [RelayCommand]
@@ -159,6 +206,18 @@ namespace NewLab.ViewModels.Pages
         [RelayCommand]
         private async Task SaveAsync()
         {
+            // Auto-assign default referral if none selected
+            if (ReferralId == null && BillingSystem == BillingSystem.LabToLab && string.IsNullOrWhiteSpace(SelectedReferralName))
+            {
+                var defaultLab = await _referralService.GetDefaultLabAsync();
+                ReferralId = defaultLab.Id;
+            }
+            else if (ReferralId == null && BillingSystem == BillingSystem.LabToLab && !string.IsNullOrWhiteSpace(SelectedReferralName))
+            {
+                var referral = await _referralService.GetOrCreateAsync(SelectedReferralName);
+                ReferralId = referral.Id;
+            }
+
             var patient = BuildPatientFromForm();
 
             var result = _patientValidator.Validate(patient);
@@ -178,7 +237,7 @@ namespace NewLab.ViewModels.Pages
                 }
                 else
                 {
-                    patient.CreatedByUserId = 1; // Default; will be set properly when auth is fully integrated
+                    patient.CreatedByUserId = 1;
                     await _patientService.AddAsync(patient);
                     _dialogService.ShowMessage("نجاح", "تم إضافة المريض بنجاح");
                 }
@@ -192,9 +251,59 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void PrintReceipt()
+        private async Task ConfirmAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 3");
+            await SaveAsync();
+        }
+
+        [RelayCommand]
+        private async Task KeyboardEnterAsync()
+        {
+            var now = DateTime.Now;
+            if ((now - _lastEnterAt).TotalMilliseconds < 500)
+            {
+                await ConfirmAsync();
+                _lastEnterAt = DateTime.MinValue;
+            }
+            else
+            {
+                _lastEnterAt = now;
+            }
+        }
+
+        [RelayCommand]
+        private async Task PrintReceiptAsync()
+        {
+            if (_editingPatientId == null && string.IsNullOrWhiteSpace(FullName))
+            {
+                _dialogService.ShowMessage("خطأ", "يرجى حفظ المريض أولاً");
+                return;
+            }
+
+            Patient? patient;
+            if (_editingPatientId != null)
+            {
+                patient = await _patientService.GetByIdAsync(_editingPatientId.Value);
+                if (patient == null)
+                {
+                    _dialogService.ShowMessage("خطأ", "لم يتم العثور على المريض");
+                    return;
+                }
+            }
+            else
+            {
+                patient = BuildPatientFromForm();
+            }
+
+            var settings = await _receiptSettingsService.GetAsync();
+            var pdfBytes = await _receiptPdfService.GenerateReceiptAsync(patient, SelectedTests.ToList(), settings);
+            var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"Receipt_{patient.FullName}_{DateTime.Now:yyyyMMddHHmmss}.pdf");
+            await System.IO.File.WriteAllBytesAsync(tempPath, pdfBytes);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = tempPath,
+                UseShellExecute = true
+            });
         }
 
         [RelayCommand]
@@ -275,9 +384,22 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void TodayPatients()
+        private async Task TodayPatientsAsync()
         {
-            _navigationService.NavigateTo<TestResultsListViewModel>();
+            var patients = await _patientService.GetTodayPatientsAsync();
+            TodayPatients.Clear();
+            foreach (var p in patients)
+                TodayPatients.Add(p);
+        }
+
+        [RelayCommand]
+        private void SelectTodayPatient(Patient? patient)
+        {
+            if (patient == null) return;
+            _editingPatientId = patient.Id;
+            LoadPatientToForm(patient);
+            IsEditMode = true;
+            IsAddMode = false;
         }
 
         [RelayCommand]
@@ -357,10 +479,31 @@ namespace NewLab.ViewModels.Pages
 
         private async Task LoadAvailableTestsAsync()
         {
-            var tests = await _labTestService.GetRoutineTestsAsync();
+            var tests = SelectedTestListMode switch
+            {
+                TestListMode.Routine => await _labTestService.GetRoutineTestsAsync(),
+                TestListMode.All => await _labTestService.GetAllAsync(),
+                _ => await _labTestService.GetRoutineTestsAsync()
+            };
+
+            if (!string.IsNullOrWhiteSpace(TestListFilter))
+            {
+                tests = tests.Where(t => t.TestName.Contains(TestListFilter) || t.Code.Contains(TestListFilter)).ToList();
+            }
+
             AvailableTests.Clear();
             foreach (var t in tests)
                 AvailableTests.Add(t);
+        }
+
+        partial void OnSelectedTestListModeChanged(TestListMode value)
+        {
+            _ = LoadAvailableTestsAsync();
+        }
+
+        partial void OnTestListFilterChanged(string value)
+        {
+            _ = LoadAvailableTestsAsync();
         }
 
         private Patient BuildPatientFromForm()

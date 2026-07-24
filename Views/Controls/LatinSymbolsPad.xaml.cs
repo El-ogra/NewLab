@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using NewLab.Helpers;
 
 namespace NewLab.Views.Controls
 {
@@ -12,7 +14,7 @@ namespace NewLab.Views.Controls
 
         public static readonly DependencyProperty SymbolsProperty =
             DependencyProperty.Register(nameof(Symbols), typeof(IEnumerable<string>), typeof(LatinSymbolsPad),
-                new PropertyMetadata(new[] { "α", "β", "γ", "μ", "±", "≤", "≥", "°" }));
+                new PropertyMetadata(new[] { "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "⁰", "α", "β", "γ", "μ", "±", "≤", "≥", "°", "×", "÷" }));
 
         public TextBox? TargetTextBox
         {
@@ -26,17 +28,44 @@ namespace NewLab.Views.Controls
             set => SetValue(SymbolsProperty, value);
         }
 
+        private TextBox? _lastFocusedTextBox;
+
         public LatinSymbolsPad()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (LatinSymbolsPadAttach.GetAutoAttach(this))
+            {
+                var parentWindow = Window.GetWindow(this);
+                if (parentWindow != null)
+                {
+                    parentWindow.PreviewGotKeyboardFocus += OnParentWindowPreviewGotKeyboardFocus;
+                }
+            }
+        }
+
+        private void OnParentWindowPreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (e.NewFocus is TextBox textBox)
+            {
+                _lastFocusedTextBox = textBox;
+            }
         }
 
         private void SymbolButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Content is string symbol && TargetTextBox != null)
+            if (sender is Button button && button.Content is string symbol)
             {
-                TargetTextBox.SelectedText = symbol;
-                TargetTextBox.Focus();
+                var target = TargetTextBox ?? _lastFocusedTextBox;
+                if (target != null)
+                {
+                    target.SelectedText = symbol;
+                    target.Focus();
+                }
             }
         }
     }

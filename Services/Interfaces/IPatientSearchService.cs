@@ -34,7 +34,7 @@ namespace NewLab.Services.Interfaces
         int PatientId,
         string FullName,
         Gender Gender,
-        int AgeValue,
+        decimal AgeValue,
         AgeUnit AgeUnit,
         string? PhoneNumber,
         string? NationalId,
@@ -60,5 +60,6 @@ namespace NewLab.Services.Interfaces
         Task<List<PatientTest>> GetPatientTestsSummaryAsync(int patientId);
         Task<PatientTestsSummary> GetSummaryAsync(int patientId);
         Task DeletePatientAsync(int patientId);
+        Task<int> GetOpenAccountsCountAsync();
     }
 }

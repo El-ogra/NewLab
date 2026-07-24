@@ -20,15 +20,15 @@ namespace NewLab.Models.Validation
                 .Must(g => g == Gender.Male || g == Gender.Female);
 
             RuleFor(p => p.AgeValue)
-                .InclusiveBetween(1, 29)
+                .InclusiveBetween(1m, 29m)
                 .When(p => p.AgeUnit == AgeUnit.Day);
 
             RuleFor(p => p.AgeValue)
-                .InclusiveBetween(1, 11)
+                .InclusiveBetween(1m, 11m)
                 .When(p => p.AgeUnit == AgeUnit.Month);
 
             RuleFor(p => p.AgeValue)
-                .InclusiveBetween(0, 120)
+                .InclusiveBetween(0m, 120m)
                 .When(p => p.AgeUnit == AgeUnit.Year);
 
             RuleFor(p => p.FastingHours)

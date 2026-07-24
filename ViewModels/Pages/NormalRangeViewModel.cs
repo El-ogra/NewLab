@@ -45,6 +45,7 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private decimal? formCriticalLowLimit;
         [ObservableProperty] private decimal? formCriticalHighLimit;
         [ObservableProperty] private string? formCriticalFlag;
+        [ObservableProperty] private bool formForPregnancyOnly;
 
         public IEnumerable<Gender> AvailableGenders => new[] { Gender.Male, Gender.Female };
         public IEnumerable<AgeUnit> AvailableAgeUnits => Enum.GetValues<AgeUnit>();
@@ -166,6 +167,61 @@ namespace NewLab.ViewModels.Pages
             // Handled in code-behind via Window.Close()
         }
 
+        [RelayCommand]
+        private async Task AddSixRangesWizardAsync()
+        {
+            if (ParentTest == null) return;
+
+            var dialog = new Views.Windows.NormalRangeSixWizardDialog
+            {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                var ranges = new List<NormalRange>();
+                var genders = new[] { Gender.Male, Gender.Female };
+                var ageConfigs = new (int From, int To, AgeUnit Unit)[]
+                {
+                    (0, 120, AgeUnit.Year),
+                    (1, 29, AgeUnit.Day),
+                    (1, 11, AgeUnit.Month)
+                };
+
+                foreach (var gender in genders)
+                {
+                    foreach (var (from, to, unit) in ageConfigs)
+                    {
+                        ranges.Add(new NormalRange
+                        {
+                            LabTestId = ParentTest.Id,
+                            TestName = ParentTest.TestName,
+                            TestUnit = dialog.Unit,
+                            Gender = gender,
+                            AgeFrom = from,
+                            AgeTo = to,
+                            AgeUnit = unit,
+                            NormalRangeText = dialog.NormalRangeText,
+                            LowLimit = dialog.LowLimit,
+                            HighLimit = dialog.HighLimit,
+                            LowFlag = dialog.LowFlag,
+                            HighFlag = dialog.HighFlag,
+                            LowComment = dialog.LowComment,
+                            HighComment = dialog.HighComment
+                        });
+                    }
+                }
+
+                foreach (var range in ranges)
+                {
+                    await _normalRangeService.AddAsync(range);
+                }
+
+                await LoadRangesAsync();
+                _dialogService.ShowMessage("نجاح", $"تم إنشاء {ranges.Count} معدلات بنجاح");
+            }
+        }
+
         partial void OnSelectedRangeChanged(NormalRange? value)
         {
             DeleteCommand.NotifyCanExecuteChanged();
@@ -202,6 +258,7 @@ namespace NewLab.ViewModels.Pages
             FormCriticalLowLimit = range.CriticalLowLimit;
             FormCriticalHighLimit = range.CriticalHighLimit;
             FormCriticalFlag = range.CriticalFlag;
+            FormForPregnancyOnly = range.ForPregnancyOnly;
         }
 
         private NormalRange BuildRangeFromForm()
@@ -225,7 +282,8 @@ namespace NewLab.ViewModels.Pages
                 CriticalRangeText = FormCriticalRangeText,
                 CriticalLowLimit = FormCriticalLowLimit,
                 CriticalHighLimit = FormCriticalHighLimit,
-                CriticalFlag = FormCriticalFlag
+                CriticalFlag = FormCriticalFlag,
+                ForPregnancyOnly = FormForPregnancyOnly
             };
         }
 
@@ -250,6 +308,7 @@ namespace NewLab.ViewModels.Pages
             FormCriticalLowLimit = null;
             FormCriticalHighLimit = null;
             FormCriticalFlag = null;
+            FormForPregnancyOnly = false;
             SelectedRange = null;
             IsEditMode = false;
             IsAddMode = true;

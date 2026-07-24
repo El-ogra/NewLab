@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:NewLab.Converters"
+             xmlns:helpers="clr-namespace:NewLab.Helpers.Interactions"
+             helpers:GlobalShortcuts.RegisterOn="True"
              FlowDirection="RightToLeft">
     <UserControl.InputBindings>
         <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
@@ -14,6 +16,9 @@
     <UserControl.Resources>
         <converters:TestStatusToIconConverter x:Key="TestStatusToIconConverter"/>
         <converters:TestStatusToColorConverter x:Key="TestStatusToColorConverter"/>
+        <converters:EnumToArabicConverter x:Key="EnumToArabicConverter"/>
+        <converters:BoolToRedBrushConverter x:Key="BoolToRedBrushConverter"/>
+        <converters:BooleanToActiveColorConverter x:Key="BooleanToActiveColorConverter"/>
     </UserControl.Resources>
     <Grid Margin="16">
         <Grid.ColumnDefinitions>
@@ -61,16 +66,14 @@
 
                 <!-- Filter ComboBox -->
                 <ComboBox Grid.Row="3" Margin="0,0,0,8"
+                          ItemsSource="{Binding FilterModes}"
                           SelectedItem="{Binding FilterMode}"
                           materialDesign:HintAssist.Hint="الفلتر">
-                    <ComboBoxItem Content="الكل" IsSelected="True"/>
-                    <ComboBoxItem Content="غير مكتوب"/>
-                    <ComboBoxItem Content="غير مراجع"/>
-                    <ComboBoxItem Content="غير مطبوع"/>
-                    <ComboBoxItem Content="مهم"/>
-                    <ComboBoxItem Content="فردي"/>
-                    <ComboBoxItem Content="معمل مع معمل"/>
-                    <ComboBoxItem Content="تحويلة"/>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource EnumToArabicConverter}}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
                 </ComboBox>
 
                 <!-- Patient list -->
@@ -87,6 +90,7 @@
                                                         Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="{Binding FullName}"
                                            VerticalAlignment="Center"
+                                           Foreground="{Binding IsImportant, Converter={StaticResource BoolToRedBrushConverter}}"
                                            FontWeight="{Binding IsImportant, Converter={x:Static converters:InverseBoolToVisibilityConverter.Instance}}"/>
                                 <TextBlock Text="{Binding AttendanceNumber, StringFormat='[{0}]'}"
                                            Foreground="Gray" VerticalAlignment="Center" Margin="4,0,0,0"/>
@@ -108,14 +112,41 @@
                 <!-- Patient info -->
                 <StackPanel Grid.Row="0" Margin="0,0,0,8">
                     <TextBlock Text="{Binding SelectedPatient.FullName, FallbackValue='اختر مريضاً'}"
-                               FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
+                               FontSize="18" FontWeight="Bold" Margin="0,0,0,4"
+                               Foreground="{Binding SelectedPatient.IsImportant, Converter={StaticResource BoolToRedBrushConverter}}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <TextBlock Text="رقم الحضور: " Foreground="Gray"/>
                         <TextBlock Text="{Binding SelectedPatient.AttendanceNumber}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <TextBlock Text="عدد التحاليل: " Foreground="Gray"/>
-                        <TextBlock Text="{Binding SelectedPatient.VisitCount}"/>
+                        <TextBlock Text="الجنس: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.Gender, Converter={StaticResource EnumToArabicConverter}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="العمر: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.AgeValue}"/>
+                        <TextBlock Text=" "/>
+                        <TextBlock Text="{Binding SelectedPatient.AgeUnit, Converter={StaticResource EnumToArabicConverter}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="رقم المعمل: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.LabId}" Cursor="Hand" MouseLeftButtonDown="LabId_MouseLeftButtonDown"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="كود الملف: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.FileCode}" Cursor="Hand" MouseLeftButtonDown="FileCode_MouseLeftButtonDown"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="كود الزيارة: " Foreground="Gray"/>
+                        <TextBlock Text="{Binding SelectedPatient.VisitCode}" Cursor="Hand" MouseLeftButtonDown="VisitCode_MouseLeftButtonDown"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Border Background="Green" Padding="4" CornerRadius="2">
+                            <TextBlock Foreground="White">
+                                <Run Text="عدد الزيارات: "/>
+                                <Run Text="{Binding SelectedPatient.ActualVisitCount, Mode=OneWay}"/>
+                            </TextBlock>
+                        </Border>
                     </StackPanel>
                 </StackPanel>
 
@@ -123,6 +154,7 @@
                 <ListBox Grid.Row="1"
                          ItemsSource="{Binding PatientTests}"
                          SelectedItem="{Binding SelectedTest}"
+                         helpers:DoubleClickBehavior.Command="{Binding OpenTestEntryCommand}"
                          VirtualizingPanel.IsVirtualizing="True">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -133,6 +165,20 @@
                                 <TextBlock Text="{Binding LabTest.TestName}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding LabTest.Code, StringFormat='({0})'}"
                                            Foreground="Gray" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
+                                    <materialDesign:PackIcon Kind="Check" Width="14" Height="14"
+                                                            Foreground="{Binding IsEntered, Converter={StaticResource BooleanToActiveColorConverter}}"
+                                                            ToolTip="تم الإدخال" Margin="0,0,4,0"/>
+                                    <materialDesign:PackIcon Kind="Check" Width="14" Height="14"
+                                                            Foreground="{Binding IsReviewed, Converter={StaticResource BooleanToActiveColorConverter}}"
+                                                            ToolTip="تمت المراجعة" Margin="0,0,4,0"/>
+                                    <materialDesign:PackIcon Kind="Printer" Width="14" Height="14"
+                                                            Foreground="{Binding IsPrinted, Converter={StaticResource BooleanToActiveColorConverter}}"
+                                                            ToolTip="تمت الطباعة" Margin="0,0,4,0"/>
+                                    <materialDesign:PackIcon Kind="Truck" Width="14" Height="14"
+                                                            Foreground="{Binding IsDelivered, Converter={StaticResource BooleanToActiveColorConverter}}"
+                                                            ToolTip="تم التسليم"/>
+                                </StackPanel>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

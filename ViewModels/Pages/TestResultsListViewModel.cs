@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NewLab.Models.Domain;
@@ -17,7 +18,9 @@ namespace NewLab.ViewModels.Pages
         private readonly IDialogService _dialogService;
         private readonly INavigationService _navigationService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IReportPdfGenerator _reportPdfGenerator;
         private readonly Func<TestResultEntryViewModel> _entryVmFactory;
+        private readonly Func<Windows.AuditLogViewModel> _auditLogVmFactory;
 
         [ObservableProperty] private ObservableCollection<PatientListItem> patients = new();
         [ObservableProperty] private PatientListItem? selectedPatient;
@@ -25,11 +28,12 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private PatientTest? selectedTest;
         [ObservableProperty] private string searchCode = string.Empty;
         [ObservableProperty] private int? searchAttendanceNumber;
-        [ObservableProperty] private string filterMode = "All";
+        [ObservableProperty] private PatientListFilter filterMode = PatientListFilter.All;
         [ObservableProperty] private DateTime selectedDate = DateTime.Today;
         [ObservableProperty] private string noteText = string.Empty;
 
         public bool IsAdmin => _currentUserService.IsAdmin;
+        public PatientListFilter[] FilterModes => Enum.GetValues<PatientListFilter>();
 
         public TestResultsListViewModel(
             ITestResultsListService testResultsListService,
@@ -38,7 +42,9 @@ namespace NewLab.ViewModels.Pages
             IDialogService dialogService,
             INavigationService navigationService,
             ICurrentUserService currentUserService,
-            Func<TestResultEntryViewModel> entryVmFactory)
+            IReportPdfGenerator reportPdfGenerator,
+            Func<TestResultEntryViewModel> entryVmFactory,
+            Func<Windows.AuditLogViewModel> auditLogVmFactory)
         {
             _testResultsListService = testResultsListService;
             _patientService = patientService;
@@ -46,7 +52,9 @@ namespace NewLab.ViewModels.Pages
             _dialogService = dialogService;
             _navigationService = navigationService;
             _currentUserService = currentUserService;
+            _reportPdfGenerator = reportPdfGenerator;
             _entryVmFactory = entryVmFactory;
+            _auditLogVmFactory = auditLogVmFactory;
 
             _ = LoadTodayPatientsAsync();
         }
@@ -127,9 +135,23 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand(CanExecute = nameof(CanShowAudit))]
-        private void ShowAudit()
+        private async Task ShowAudit()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Phase 10");
+            if (SelectedPatient == null || SelectedTest == null) return;
+
+            var vm = _auditLogVmFactory();
+            await vm.LoadAsync(
+                SelectedPatient.PatientId,
+                SelectedTest.Id,
+                SelectedPatient.FullName,
+                SelectedTest.LabTest.TestName);
+
+            var window = new Views.Windows.AuditLogView
+            {
+                DataContext = vm,
+                Owner = Application.Current.MainWindow
+            };
+            window.ShowDialog();
         }
 
         private bool CanShowAudit() => IsAdmin;
@@ -190,33 +212,73 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void PrintAggregateReport()
+        private async Task PrintAggregateReportAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 4");
+            if (SelectedPatient == null) return;
+            try
+            {
+                var pdf = await _reportPdfGenerator.GenerateAggregateAsync(SelectedPatient.PatientId, SelectedDate);
+                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"Aggregate_{SelectedPatient.PatientId}.pdf");
+                await System.IO.File.WriteAllBytesAsync(tempPath, pdf);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+            }
+            catch (Exception ex) { _dialogService.ShowMessage("خطأ", ex.Message); }
         }
 
         [RelayCommand]
-        private void PrintWorksheet()
+        private async Task PrintWorksheetAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 4");
+            if (SelectedPatient == null) return;
+            try
+            {
+                var pdf = await _reportPdfGenerator.GenerateWorksheetAsync(SelectedPatient.PatientId);
+                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"Worksheet_{SelectedPatient.PatientId}.pdf");
+                await System.IO.File.WriteAllBytesAsync(tempPath, pdf);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+            }
+            catch (Exception ex) { _dialogService.ShowMessage("خطأ", ex.Message); }
         }
 
         [RelayCommand]
-        private void PrintEnvelope()
+        private async Task PrintEnvelopeAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 4");
+            if (SelectedPatient == null) return;
+            try
+            {
+                var pdf = await _reportPdfGenerator.GenerateEnvelopeAsync(SelectedPatient.PatientId);
+                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"Envelope_{SelectedPatient.PatientId}.pdf");
+                await System.IO.File.WriteAllBytesAsync(tempPath, pdf);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+            }
+            catch (Exception ex) { _dialogService.ShowMessage("خطأ", ex.Message); }
         }
 
         [RelayCommand]
-        private void PrintHistory()
+        private async Task PrintHistoryAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 4");
+            if (SelectedPatient == null) return;
+            try
+            {
+                var pdf = await _reportPdfGenerator.GenerateHistoryAsync(SelectedPatient.PatientId);
+                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"History_{SelectedPatient.PatientId}.pdf");
+                await System.IO.File.WriteAllBytesAsync(tempPath, pdf);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+            }
+            catch (Exception ex) { _dialogService.ShowMessage("خطأ", ex.Message); }
         }
 
         [RelayCommand]
-        private void PrintBlankReport()
+        private async Task PrintBlankReportAsync()
         {
-            _dialogService.ShowMessage("Info", "ستُفعَّل هذه الوظيفة في Function 4");
+            if (SelectedPatient == null) return;
+            try
+            {
+                var pdf = await _reportPdfGenerator.GenerateBlankAsync(SelectedPatient.PatientId);
+                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"Blank_{SelectedPatient.PatientId}.pdf");
+                await System.IO.File.WriteAllBytesAsync(tempPath, pdf);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+            }
+            catch (Exception ex) { _dialogService.ShowMessage("خطأ", ex.Message); }
         }
 
         partial void OnSelectedPatientChanged(PatientListItem? value)
@@ -232,7 +294,7 @@ namespace NewLab.ViewModels.Pages
             _ = LoadTodayPatientsAsync();
         }
 
-        partial void OnFilterModeChanged(string value)
+        partial void OnFilterModeChanged(PatientListFilter value)
         {
             _ = LoadTodayPatientsAsync();
         }

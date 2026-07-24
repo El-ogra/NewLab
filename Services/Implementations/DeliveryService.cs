@@ -59,6 +59,7 @@ namespace NewLab.Services.Implementations
                 if (filter.OnlyImportant && !visit.Patient.IsImportant) continue;
                 if (filter.OnlyIndividual && visit.Patient.BillingSystem != BillingSystem.Individual) continue;
                 if (filter.OnlyLabToLab && visit.Patient.BillingSystem != BillingSystem.LabToLab) continue;
+                if (filter.UserId.HasValue && visit.Patient.CreatedByUserId != filter.UserId.Value) continue;
 
                 result.Add(new DeliveryPatientRow(
                     visit.Patient.Id,
@@ -70,7 +71,13 @@ namespace NewLab.Services.Implementations
                     unprintedCount,
                     remainingBalance,
                     visit.Patient.IsImportant,
-                    visit.DailySequenceNumber));
+                    visit.DailySequenceNumber,
+                    visit.Patient.Gender,
+                    visit.Patient.AgeValue,
+                    visit.Patient.AgeUnit,
+                    visit.Patient.LabId,
+                    visit.Patient.FileCode,
+                    visit.Patient.VisitCode));
             }
 
             return result.OrderBy(p => p.AttendanceNumber).ToList();
@@ -90,26 +97,29 @@ namespace NewLab.Services.Implementations
                 pt.LabTestId,
                 pt.LabTest.TestName,
                 pt.Status,
+                pt.IsReviewed,
+                pt.Status >= TestStatus.Entered,
                 pt.IsPrinted,
                 pt.IsDelivered,
                 pt.Price)).ToList();
         }
 
-        public async Task<(int Undelivered, int Unprinted, decimal Remaining)> GetPatientDeliveryStateAsync(int patientId)
+        public async Task<(int Unentered, int Undelivered, int Unprinted, decimal Remaining)> GetPatientDeliveryStateAsync(int patientId)
         {
             var patient = await _context.Patients.FindAsync(patientId);
-            if (patient == null) return (0, 0, 0);
+            if (patient == null) return (0, 0, 0, 0);
 
             var tests = await _context.PatientTests
                 .Include(pt => pt.Visit)
                 .Where(pt => pt.Visit.PatientId == patientId)
                 .ToListAsync();
 
+            var unentered = tests.Count(t => t.Status == TestStatus.New);
             var undelivered = tests.Count(t => !t.IsDelivered);
             var unprinted = tests.Count(t => !t.IsPrinted);
             var remaining = patient.TotalAmount - patient.PaidAmount;
 
-            return (undelivered, unprinted, remaining);
+            return (unentered, undelivered, unprinted, remaining);
         }
 
         public async Task DeliverAllResultsAsync(int patientId, int userId)
@@ -238,15 +248,50 @@ namespace NewLab.Services.Implementations
             return tx;
         }
 
+        public async Task ClearAccountAsync(int patientId, int userId)
+        {
+            var patient = await _context.Patients.FindAsync(patientId);
+            if (patient == null)
+                throw new InvalidOperationException("المريض غير موجود");
+
+            var remaining = patient.TotalAmount - patient.PaidAmount;
+            if (remaining <= 0)
+                throw new InvalidOperationException("لا يوجد متبقي للتحصيل");
+
+            patient.PaidAmount = patient.TotalAmount;
+
+            _context.PaymentTransactions.Add(new PaymentTransaction
+            {
+                PatientId = patientId,
+                Amount = remaining,
+                Type = PaymentType.Payment,
+                UserId = userId,
+                Timestamp = DateTime.Now,
+                Note = "تحصيل كامل الحساب"
+            });
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "Patient",
+                EntityId = patientId,
+                Action = "ClearAccount",
+                UserId = userId,
+                Timestamp = DateTime.Now,
+                Details = $"تحصيل مبلغ {remaining}"
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<DeliveryPatientRow?> SearchByCodeAsync(string code)
         {
             if (string.IsNullOrWhiteSpace(code)) return null;
 
             var trimmed = code.Trim();
 
-            if (trimmed.Length >= 2)
+            if (trimmed.Length >= 1)
             {
-                var typeDigit = trimmed[1];
+                var typeDigit = trimmed[0];
                 var result = typeDigit switch
                 {
                     '1' => await SearchByVisitCodeAsync(trimmed),
@@ -320,7 +365,13 @@ namespace NewLab.Services.Implementations
                 unprintedCount,
                 remainingBalance,
                 patient.IsImportant,
-                visit.DailySequenceNumber);
+                visit.DailySequenceNumber,
+                patient.Gender,
+                patient.AgeValue,
+                patient.AgeUnit,
+                patient.LabId,
+                patient.FileCode,
+                patient.VisitCode);
         }
     }
 }

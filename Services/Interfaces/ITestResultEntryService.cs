@@ -10,7 +10,7 @@ namespace NewLab.Services.Interfaces
         Task SaveResultsAsync(int patientTestId, IEnumerable<TestResult> results, string? comment);
         Task<NormalRangeEvaluation?> EvaluateResultAsync(decimal value, int labTestId, Patient patient);
         Task<List<SavedComment>> GetSavedCommentsAsync(int labTestId);
-        Task MarkReviewedAsync(int patientTestId);
+        Task MarkReviewedAsync(int patientTestId, bool isReviewed);
         Task<byte[]> PreviewReportAsync(int patientTestId);
         Task<byte[]> PrintReportAsync(int patientTestId);
     }

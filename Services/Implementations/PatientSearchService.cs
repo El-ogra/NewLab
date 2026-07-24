@@ -130,5 +130,11 @@ namespace NewLab.Services.Implementations
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<int> GetOpenAccountsCountAsync()
+        {
+            return await _context.Patients
+                .CountAsync(p => p.TotalAmount - p.PaidAmount > 0);
+        }
     }
 }

@@ -43,6 +43,8 @@ namespace NewLab
                     services.AddScoped<IReportPdfGenerator, ReportPdfGenerator>();
                     services.AddScoped<IDeliveryService, DeliveryService>();
                     services.AddScoped<IPatientSearchService, PatientSearchService>();
+                    services.AddScoped<IReceiptPdfService, ReceiptPdfService>();
+                    services.AddScoped<IReceiptSettingsService, ReceiptSettingsService>();
 
                     // 2.1 Register Validators
                     services.AddScoped<IValidator<Patient>, PatientValidator>();
@@ -63,11 +65,22 @@ namespace NewLab
                     services.AddTransient<LabTestManagementViewModel>();
                     services.AddTransient<NormalRangeViewModel>();
                     services.AddTransient<BarcodeViewModel>();
+                    services.AddTransient<Func<BarcodeViewModel>>(sp =>
+                        () => sp.GetRequiredService<BarcodeViewModel>());
+                    services.AddTransient<Func<NormalRangeViewModel>>(sp =>
+                        () => sp.GetRequiredService<NormalRangeViewModel>());
+                    services.AddTransient<Func<TestResultEntryViewModel>>(sp =>
+                        () => sp.GetRequiredService<TestResultEntryViewModel>());
+                    services.AddTransient<Func<NewLab.ViewModels.Windows.AuditLogViewModel>>(sp =>
+                        () => sp.GetRequiredService<NewLab.ViewModels.Windows.AuditLogViewModel>());
+                    services.AddTransient<Func<CalculationConstantsViewModel>>(sp =>
+                        () => sp.GetRequiredService<CalculationConstantsViewModel>());
                     services.AddTransient<TestResultsListViewModel>();
                     services.AddTransient<TestResultEntryViewModel>();
                     services.AddTransient<CalculationConstantsViewModel>();
                     services.AddTransient<DeliveryViewModel>();
                     services.AddTransient<SearchViewModel>();
+                    services.AddTransient<NewLab.ViewModels.Windows.AuditLogViewModel>();
                 })
                 .Build();
         }

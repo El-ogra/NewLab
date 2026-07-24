@@ -15,6 +15,12 @@ namespace NewLab.Views.Windows
             InitializeComponent();
         }
 
+        private void ArrowDown_Click(object sender, RoutedEventArgs e)
+        {
+            var descBox = FindName("ExtraBarcodeDescription") as TextBox;
+            descBox?.Focus();
+        }
+
         private void Label_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(null);
@@ -57,6 +63,26 @@ namespace NewLab.Views.Windows
                             vm.Labels.Move(draggedIndex, targetIndex);
                         }
                     }
+                }
+            }
+        }
+
+        private void TrashBin_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        }
+
+        private void TrashBin_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(BarcodeLabel)))
+            {
+                var draggedLabel = e.Data.GetData(typeof(BarcodeLabel)) as BarcodeLabel;
+                var vm = DataContext as BarcodeViewModel;
+
+                if (draggedLabel != null && vm != null)
+                {
+                    vm.Labels.Remove(draggedLabel);
                 }
             }
         }

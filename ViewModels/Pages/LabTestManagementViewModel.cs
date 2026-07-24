@@ -60,6 +60,7 @@ namespace NewLab.ViewModels.Pages
         [ObservableProperty] private int? formExternalReferralId;
         [ObservableProperty] private decimal? formExternalCost;
         [ObservableProperty] private string? formPromptQuestion;
+        [ObservableProperty] private string? formLabelName;
         [ObservableProperty] private bool formIsActive = true;
 
         // Referral price fields
@@ -210,6 +211,12 @@ namespace NewLab.ViewModels.Pages
         }
 
         [RelayCommand]
+        private void GoBack()
+        {
+            _navigationService.GoBack();
+        }
+
+        [RelayCommand]
         private async Task OpenNormalRangeAsync()
         {
             if (SelectedTest == null)
@@ -336,6 +343,7 @@ namespace NewLab.ViewModels.Pages
                 ExternalReferralId = FormExternalReferralId,
                 ExternalCost = FormExternalCost,
                 PromptQuestion = FormPromptQuestion,
+                LabelName = FormLabelName,
                 IsActive = FormIsActive
             };
         }
@@ -369,6 +377,7 @@ namespace NewLab.ViewModels.Pages
             FormExternalReferralId = test.ExternalReferralId;
             FormExternalCost = test.ExternalCost;
             FormPromptQuestion = test.PromptQuestion;
+            FormLabelName = test.LabelName;
             FormIsActive = test.IsActive;
         }
 
@@ -401,6 +410,7 @@ namespace NewLab.ViewModels.Pages
             FormExternalReferralId = null;
             FormExternalCost = null;
             FormPromptQuestion = null;
+            FormLabelName = null;
             FormIsActive = true;
             SelectedTest = null;
             SelectedReferralPrice = null;

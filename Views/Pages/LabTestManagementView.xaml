@@ -55,10 +55,22 @@
                         Style="{StaticResource MaterialDesignRaisedButton}"
                         HorizontalAlignment="Stretch" Padding="16,8" Margin="0,0,0,8"/>
 
-                <ListBox Grid.Row="5" ItemsSource="{Binding Tests}"
-                         SelectedItem="{Binding SelectedTest}"
-                         DisplayMemberPath="TestName"
-                         Margin="0,0,0,8"/>
+                <DataGrid Grid.Row="5" ItemsSource="{Binding Tests}"
+                          SelectedItem="{Binding SelectedTest}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          BorderThickness="0"
+                          Margin="0,0,0,8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="الكود" Binding="{Binding Code}" Width="70"/>
+                        <DataGridTextColumn Header="اسم التحليل" Binding="{Binding TestName}" Width="*"/>
+                        <DataGridTextColumn Header="المجموعة" Binding="{Binding TestGroup.Name}" Width="80"/>
+                        <DataGridTextColumn Header="الملصق" Binding="{Binding LabelName}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
             </Grid>
         </Border>
 
@@ -186,6 +198,11 @@
                              IsEnabled="{Binding FormIsSentExternal}"
                              Margin="0,0,0,8"/>
 
+                    <TextBox Text="{Binding FormLabelName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="اسم الملصق"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,8"/>
+
                     <TextBox Text="{Binding FormPromptQuestion, UpdateSourceTrigger=PropertyChanged}"
                              materialDesign:HintAssist.Hint="الأسئلة / التنبيهات"
                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -271,6 +288,10 @@
                     Margin="4" Padding="16,8"/>
             <Button Content="المعدل الطبيعي"
                     Command="{Binding OpenNormalRangeCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Margin="4" Padding="16,8"/>
+            <Button Content="رجوع"
+                    Command="{Binding GoBackCommand}"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     Margin="4" Padding="16,8"/>
         </WrapPanel>

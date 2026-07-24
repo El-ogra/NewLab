@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:controls="clr-namespace:NewLab.Views.Controls"
+        xmlns:converters="clr-namespace:NewLab.Converters"
         Title="المعدل الطبيعي"
         FlowDirection="RightToLeft"
         WindowStartupLocation="CenterOwner"
@@ -12,6 +13,10 @@
     <Window.InputBindings>
         <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
     </Window.InputBindings>
+
+    <Window.Resources>
+        <converters:EnumToArabicConverter x:Key="EnumToArabicConverter"/>
+    </Window.Resources>
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -49,28 +54,27 @@
 
                     <TextBlock Grid.Row="0" Text="المعدلات المسجلة" FontWeight="Bold" Margin="0,0,0,5" />
 
-                    <ListBox Grid.Row="1"
-                             ItemsSource="{Binding Ranges}"
-                             SelectedItem="{Binding SelectedRange}"
-                             DisplayMemberPath=""
-                             HorizontalContentAlignment="Stretch">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="2">
-                                    <TextBlock FontWeight="SemiBold">
-                                        <Run Text="{Binding Gender}" />
-                                        <Run Text=" " />
-                                        <Run Text="{Binding AgeFrom}" />
-                                        <Run Text="-" />
-                                        <Run Text="{Binding AgeTo}" />
-                                        <Run Text=" " />
-                                        <Run Text="{Binding AgeUnit}" />
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding NormalRangeText}" Foreground="Gray" FontSize="11" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding Ranges}"
+                              SelectedItem="{Binding SelectedRange}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="40"/>
+                            <DataGridTextColumn Header="التحليل" Binding="{Binding TestName}" Width="120"/>
+                            <DataGridTextColumn Header="الجنس" Binding="{Binding Gender, Converter={StaticResource EnumToArabicConverter}}" Width="60"/>
+                            <DataGridTextColumn Header="من" Binding="{Binding AgeFrom}" Width="40"/>
+                            <DataGridTextColumn Header="إلى" Binding="{Binding AgeTo}" Width="40"/>
+                            <DataGridTextColumn Header="وحدة" Binding="{Binding AgeUnit, Converter={StaticResource EnumToArabicConverter}}" Width="50"/>
+                            <DataGridTextColumn Header="المعدل الطبيعي" Binding="{Binding NormalRangeText}" Width="100"/>
+                            <DataGridTextColumn Header="حد أدنى" Binding="{Binding LowCritical}" Width="50"/>
+                            <DataGridTextColumn Header="حد أعلى" Binding="{Binding HighCritical}" Width="50"/>
+                            <DataGridTextColumn Header="الوحدة" Binding="{Binding Unit}" Width="60"/>
+                            <DataGridTextColumn Header="P &amp; S" Binding="{Binding ForPregnancyOnly}" Width="50"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </Grid>
             </Border>
 
@@ -89,16 +93,28 @@
 
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="الجنس" Margin="0,0,0,2" />
-                            <ComboBox x:Name="GenderCombo"
+                            <ComboBox ItemsSource="{Binding AvailableGenders}"
                                       SelectedItem="{Binding FormGender}"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource EnumToArabicConverter}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="وحدة العمر" Margin="0,0,0,2" />
-                            <ComboBox x:Name="AgeUnitCombo"
+                            <ComboBox ItemsSource="{Binding AvailableAgeUnits}"
                                       SelectedItem="{Binding FormAgeUnit}"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource EnumToArabicConverter}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </StackPanel>
                     </Grid>
 
@@ -209,6 +225,9 @@
                     <TextBox Text="{Binding FormCriticalComment}"
                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
                              materialDesign:HintAssist.Hint="Critical Comment" />
+
+                    <!-- ForPregnancyOnly (CL-01: Pregnancy Status) -->
+                    <CheckBox Content="للحامل فقط (P &amp; S)" IsChecked="{Binding FormForPregnancyOnly}" Margin="0,8,0,0"/>
                 </StackPanel>
             </ScrollViewer>
 
@@ -241,6 +260,10 @@
                         Style="{StaticResource MaterialDesignOutlinedButton}"
                         Margin="0,4" Padding="16,8"
                         Click="BackToTests_Click" />
+                <Button Content="6 معدلات (تحليل لا يعتمد على الجنس/السن)"
+                        Command="{Binding AddSixRangesWizardCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Margin="0,4" Padding="16,8" />
 
                 <Separator Margin="0,12" />
 

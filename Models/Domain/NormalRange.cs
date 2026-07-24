@@ -61,6 +61,8 @@ namespace NewLab.Models.Domain
         [MaxLength(50)]
         public string? CriticalFlag { get; set; }
 
+        public bool ForPregnancyOnly { get; set; }
+
         // Navigation property
         public LabTest LabTest { get; set; } = null!;
     }

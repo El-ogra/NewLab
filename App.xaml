@@ -37,6 +37,8 @@
 
             <!-- Converters -->
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <converters:EnumToArabicConverter x:Key="EnumToArabicConverter"/>
+            <converters:BoolToRedBrushConverter x:Key="BoolToRedBrushConverter"/>
 
             <!-- Primary Colors -->
             <Color x:Key="PrimaryColor">#1976D2</Color>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NewLab.Models.Domain;
@@ -221,6 +222,12 @@ namespace NewLab.ViewModels.Pages
             {
                 _dialogService.ShowMessage("خطأ", "حدث خطأ أثناء الطباعة: " + ex.Message);
             }
+        }
+
+        [RelayCommand]
+        private void Close()
+        {
+            Application.Current.Windows.OfType<Views.Windows.BarcodeView>().FirstOrDefault()?.Close();
         }
     }
 }

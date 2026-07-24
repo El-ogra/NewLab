@@ -30,6 +30,8 @@ namespace NewLab.Data
         public DbSet<SavedComment> SavedComments { get; set; }
         public DbSet<CalculationConstant> CalculationConstants { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public DbSet<LabTestSpecimen> LabTestSpecimens { get; set; }
+        public DbSet<ReceiptSettings> ReceiptSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -110,6 +112,10 @@ namespace NewLab.Data
             modelBuilder.Entity<Patient>()
                 .Property(p => p.DiscountValue)
                 .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Patient>()
+                .Property(p => p.AgeValue)
+                .HasColumnType("decimal(18,4)");
 
             modelBuilder.Entity<Referral>()
                 .Property(r => r.DiscountPercent)
@@ -402,6 +408,28 @@ namespace NewLab.Data
                 .WithMany()
                 .HasForeignKey(p => p.DeliveredByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // 25. LabTestSpecimen configurations
+            modelBuilder.Entity<LabTestSpecimen>()
+                .HasOne(ls => ls.LabTest)
+                .WithMany(t => t.Specimens)
+                .HasForeignKey(ls => ls.LabTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LabTestSpecimen>()
+                .HasOne(ls => ls.SpecimenType)
+                .WithMany()
+                .HasForeignKey(ls => ls.SpecimenTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 26. ReceiptSettings — single row seeded with defaults
+            modelBuilder.Entity<ReceiptSettings>().HasData(
+                new ReceiptSettings
+                {
+                    Id = 1,
+                    AutoPrintAfterSave = false,
+                    ShowTestsDetails = true
+                });
         }
     }
 }
